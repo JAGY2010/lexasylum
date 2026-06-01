@@ -77,14 +77,29 @@ function requireSuperAdmin(req, res, next) {
 
 app.use(express.json({ limit: '10mb' }));
 
-// ── Serve static files ───────────────────────────────────────────────────────
-app.use('/assets', express.static(path.join(__dirname, 'public')));
-
-// Explicit root — force text/html content type
-app.get('/', (req, res) => {
-  res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+// ── Disable ALL caching at middleware level ───────────────────────────────────
+app.use((req, res, next) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, private');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
+  next();
 });
+
+// ── Serve index.html ─────────────────────────────────────────────────────────
+const fs = require('fs');
+
+app.get('/', (req, res) => {
+  // Read fresh every time to avoid stale content
+  const html = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, private');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.send(html);
+});
+
+app.use('/assets', express.static(path.join(__dirname, 'public')));
 
 // ── DB Init ──────────────────────────────────────────────────────────────────
 async function initDB() {
@@ -554,10 +569,12 @@ app.post('/api/claude-stream', requireAuth, async (req, res) => {
   }
 });
 
-// ── Catch-all: serve index.html for any non-API route ───────────────────────
+// ── Catch-all ────────────────────────────────────────────────────────────────
 app.get('/{*path}', (req, res) => {
+  const html = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, private');
+  res.send(html);
 });
 
 // ── Start ────────────────────────────────────────────────────────────────────
