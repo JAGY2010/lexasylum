@@ -101,6 +101,14 @@ app.get('/', (req, res) => {
 
 app.use('/assets', express.static(path.join(__dirname, 'public')));
 
+// Serve CSS file explicitly
+app.get('/styles.css', (req, res) => {
+  const css = fs.readFileSync(path.join(__dirname, 'public', 'styles.css'), 'utf8');
+  res.setHeader('Content-Type', 'text/css; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.send(css);
+});
+
 // ── DB Init ──────────────────────────────────────────────────────────────────
 async function initDB() {
   const client = await pool.connect();
