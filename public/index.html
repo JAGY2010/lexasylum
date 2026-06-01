@@ -1264,6 +1264,17 @@ function renderEventBlock(q) {
     { key:'consecuencias', label:'💔 Consecuencias',              rows:2, placeholder:'Físicas (heridas, hospitalización), emocionales (trauma, insomnio), laborales (perdió empleo), familiares...' },
   ];
 
+  const fieldFollowups = {
+    fecha:        ['¿Recuerda el día exacto o solo el mes y año?','¿Fue de día, de tarde o de noche?','¿Hay algún evento o fecha importante que lo ayude a recordar cuándo fue?'],
+    lugar:        ['¿Cuál es la dirección exacta o el nombre del lugar?','¿Es un lugar público o privado?','¿Hay personas del barrio que puedan confirmar que usted estuvo ahí?'],
+    quien:        ['¿Conocía a esa persona antes del incidente?','¿Usaba uniforme, ropa civil o algo que lo identificara?','¿Mostró alguna credencial o identificación oficial?','¿Cómo se llamaba — escuchó su nombre o lo conocía del barrio?'],
+    dijeron:      ['¿Recuerda alguna frase textual — aunque sea parte de lo que dijo?','¿Mencionó su nombre, el de algún familiar, o alguna organización?','¿Usó palabras políticas como "gusano", "traidor", "contrarrevolucionario", "opositor"?'],
+    hicieron:     ['¿Hubo contacto físico — golpes, empujones, sujeción por la fuerza?','¿Usó algún arma o instrumento para amenazarlo?','¿Tuvo que ir a un médico o hospital después?','¿Quedó con alguna marca, lesión o consecuencia física visible?'],
+    nexo:         ['¿Le dijeron explícitamente por qué lo elegían a usted?','¿Había algo que lo distinguía de otras personas en ese lugar?','¿Había tenido contacto previo con esa persona o esa organización?'],
+    testigos:     ['¿Había personas presentes aunque no intervinieran?','¿Alguien lo vio llegar o salir del lugar?','¿Le contó a alguien inmediatamente después — familiar, amigo, vecino?'],
+    consecuencias:['¿Tuvo que cambiar algún hábito o rutina después de este evento?','¿Afectó su trabajo, sus estudios o su vida familiar?','¿Desarrolló problemas de sueño, ansiedad o miedo constante?'],
+  };
+
   return `<div class="q-item event-block" id="qi-${q.id}" style="padding:0;overflow:hidden">
     <div class="event-block-header ${isRequired?'event-required':''}" onclick="toggleEventBlock('${q.id}')" style="display:flex;align-items:center;gap:10px;padding:14px 16px;cursor:pointer;background:${hasAny?'rgba(82,183,136,0.08)':'rgba(200,169,110,0.06)'};border-bottom:1px solid var(--border)">
       <span style="font-size:15px">${q.icon||'📌'}</span>
@@ -1286,6 +1297,13 @@ function renderEventBlock(q) {
             onfocus="this.style.borderColor='var(--gold)'"
             onblur="this.style.borderColor='${f.required?'var(--red)':'var(--border)'}'"
           >${escHtml(data[f.key]||'')}</textarea>
+          ${fieldFollowups[f.key] ? `
+          <div style="margin-top:7px;background:rgba(200,169,110,0.08);border:1px solid rgba(200,169,110,0.25);border-radius:7px;padding:9px 12px">
+            <div style="font-size:10px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">📋 Preguntar al cliente:</div>
+            <ul style="margin:0;padding:0 0 0 16px;display:flex;flex-direction:column;gap:4px">
+              ${fieldFollowups[f.key].map(fq => `<li style="font-size:12px;color:var(--text);line-height:1.5">${fq}</li>`).join('')}
+            </ul>
+          </div>` : ''}
         </div>`).join('')}
     </div>
   </div>`;
@@ -1302,6 +1320,13 @@ function renderFamilyEventBlock(q) {
     { key:'queOcurrio', label:'⚡ ¿Qué les ocurrió exactamente?',  rows:4, placeholder:'Descripción detallada — amenazas, detención, golpes, pérdida de empleo, citaciones, lo que dijeron...' },
     { key:'represalia', label:'🔗 ¿Fue como represalia hacia usted?', rows:2, placeholder:'¿Cómo sabe que fue por su causa? ¿Dijeron algo que lo confirme?' },
   ];
+
+  const familyFollowups = {
+    quien:      ['¿Cuántos años tiene esa persona?','¿Vive en la misma ciudad o en otra provincia?','¿Tiene la misma posición política que el cliente?'],
+    cuando:     ['¿Recuerda el mes y año exactos?','¿Fue antes o después del evento principal del cliente?'],
+    queOcurrio: ['¿Dijeron algo que confirme que fue por causa del cliente?','¿Hubo consecuencias físicas — golpes, detención, hospitalización?','¿Esa persona está dispuesta a declarar o enviar una carta?'],
+    represalia: ['¿Le dijeron explícitamente que era por causa del cliente?','¿Hay testigos de lo que le dijeron a ese familiar?'],
+  };
 
   return `<div class="q-item event-block" id="qi-${q.id}" style="padding:0;overflow:hidden">
     <div class="event-block-header" onclick="toggleEventBlock('${q.id}')" style="display:flex;align-items:center;gap:10px;padding:14px 16px;cursor:pointer;background:${hasAny?'rgba(82,183,136,0.08)':'rgba(230,57,70,0.05)'};border-bottom:1px solid var(--border)">
@@ -1323,6 +1348,13 @@ function renderFamilyEventBlock(q) {
             onfocus="this.style.borderColor='var(--gold)'"
             onblur="this.style.borderColor='var(--border)'"
           >${escHtml(data[f.key]||'')}</textarea>
+          ${familyFollowups[f.key] ? `
+          <div style="margin-top:7px;background:rgba(200,169,110,0.08);border:1px solid rgba(200,169,110,0.25);border-radius:7px;padding:9px 12px">
+            <div style="font-size:10px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">📋 Preguntar al cliente:</div>
+            <ul style="margin:0;padding:0 0 0 16px;display:flex;flex-direction:column;gap:4px">
+              ${familyFollowups[f.key].map(fq => `<li style="font-size:12px;color:var(--text);line-height:1.5">${fq}</li>`).join('')}
+            </ul>
+          </div>` : ''}
         </div>`).join('')}
     </div>
   </div>`;
