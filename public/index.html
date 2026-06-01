@@ -1569,7 +1569,7 @@ ${text.substring(0, 5000)}`;
 
   try {
     const resp = await fetch('/api/claude', {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'application/json','x-session-token':_authToken||''},
       body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:2000, messages:[{role:'user',content:extractPrompt}] })
     });
     const data = await resp.json();
@@ -2412,7 +2412,7 @@ async function processPdfFile(file) {
   dz.innerHTML = '<div style="color:var(--muted);font-size:13px">⏳ Leyendo PDF...</div>';
   try {
     const base64 = await new Promise((res,rej) => { const r=new FileReader(); r.onload=()=>res(r.result.split(',')[1]); r.onerror=rej; r.readAsDataURL(file); });
-    const resp = await fetch('/api/claude', { method:'POST', headers:{'Content-Type':'application/json'},
+    const resp = await fetch('/api/claude', { method:'POST', headers:{'Content-Type':'application/json','x-session-token':_authToken||''},
       body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:8000, messages:[{role:'user',content:[{type:'document',source:{type:'base64',media_type:'application/pdf',data:base64}},{type:'text',text:'Extract the complete text of this asylum declaration. Return ONLY the plain text with numbered paragraphs.'}]}]})});
     const data = await resp.json();
     if (data.error) throw new Error(data.error.message);
@@ -2567,7 +2567,10 @@ async function callStreaming(model, max_tokens, messages, onChunk, useWebSearch 
 
     fetch('/api/claude-stream', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-session-token': _authToken || ''
+      },
       body: JSON.stringify(body)
     }).then(resp => {
       if (!resp.ok) { reject(new Error(`Error del servidor: ${resp.status}`)); return; }
@@ -3059,7 +3062,7 @@ ${generatedData.declarationText.substring(0,2000)}`;
 
   // Retry up to 3 times with delay if rate limited
   const callAnalysis = async (attemptsLeft) => {
-    const resp=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1500,messages:[{role:'user',content:aPrompt}]})});
+    const resp=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json','x-session-token':_authToken||''},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1500,messages:[{role:'user',content:aPrompt}]})});
     const data=await resp.json();
     if(data.error) {
       const isRateLimit = (data.error.message||'').toLowerCase().includes('rate limit') || (data.error.message||'').includes('30,000');
