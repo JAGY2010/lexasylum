@@ -78,7 +78,19 @@ function requireSuperAdmin(req, res, next) {
 app.use(express.json({ limit: '10mb' }));
 
 // ── Serve static files first ────────────────────────────────────────────────
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    }
+  }
+}));
+
+// Explicit root route
+app.get('/', (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 // ── DB Init ──────────────────────────────────────────────────────────────────
 async function initDB() {
