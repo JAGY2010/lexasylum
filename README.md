@@ -26,4 +26,4 @@ lexasylum/
 3. Agregar servicio PostgreSQL en Railway
 4. Configurar variables de entorno
 5. Deploy automático
-6. En Namecheap: apuntar DNS a Railway domain
+6. En Namecheap: apuntar DNS a Railway domain 
