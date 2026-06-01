@@ -77,6 +77,9 @@ function requireSuperAdmin(req, res, next) {
 
 app.use(express.json({ limit: '10mb' }));
 
+// ── Serve static files first ────────────────────────────────────────────────
+app.use(express.static(path.join(__dirname, 'public')));
+
 // ── DB Init ──────────────────────────────────────────────────────────────────
 async function initDB() {
   const client = await pool.connect();
@@ -545,8 +548,7 @@ app.post('/api/claude-stream', requireAuth, async (req, res) => {
   }
 });
 
-// ── Serve app ────────────────────────────────────────────────────────────────
-app.use(express.static(path.join(__dirname, 'public')));
+// ── Catch-all: serve index.html for any non-API route ───────────────────────
 app.get('/{*path}', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
