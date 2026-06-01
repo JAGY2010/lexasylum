@@ -77,16 +77,10 @@ function requireSuperAdmin(req, res, next) {
 
 app.use(express.json({ limit: '10mb' }));
 
-// ── Serve static files first ────────────────────────────────────────────────
-app.use(express.static(path.join(__dirname, 'public'), {
-  setHeaders: (res, filePath) => {
-    if (filePath.endsWith('.html')) {
-      res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    }
-  }
-}));
+// ── Serve static files ───────────────────────────────────────────────────────
+app.use('/assets', express.static(path.join(__dirname, 'public')));
 
-// Explicit root route
+// Explicit root — force text/html content type
 app.get('/', (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -562,6 +556,7 @@ app.post('/api/claude-stream', requireAuth, async (req, res) => {
 
 // ── Catch-all: serve index.html for any non-API route ───────────────────────
 app.get('/{*path}', (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
