@@ -701,317 +701,189 @@ function getSections() {
   });
 }
 
-// ─── FOLLOW-UP QUESTIONS MAP (Opción A) ────────────────────────────────────────
-const FOLLOWUP_QUESTIONS = {
-  // S1 — Datos personales
+// ─── FOLLOW-UP QUESTIONS MAP — Por país ──────────────────────────────────────
+function getFollowupQuestions(qId) {
+  const group = getCountryGroup();
+  const map = FOLLOWUP_BY_GROUP[group] || FOLLOWUP_BY_GROUP['other'];
+  return map[qId] || FOLLOWUP_BY_GROUP['other'][qId] || null;
+}
+
+const FOLLOWUP_BY_GROUP = {
+
+// ── RÉGIMEN (Cuba, Venezuela, Nicaragua) ─────────────────────────────────────
+regime: {
+  name:          ['¿El nombre aparece exactamente igual en su carné de identidad cubano/venezolano/nicaragüense?','¿Usó algún nombre diferente en documentos del gobierno?'],
+  dob:           ['¿Tiene carné de identidad, pasaporte u otro documento que confirme esa fecha?','¿Ha tenido alguna vez un documento con fecha diferente?'],
+  birthCity:     ['¿En qué municipio y provincia queda esa ciudad?','¿Vivió toda su infancia ahí o el gobierno lo reubicó en algún momento?'],
+  anumber:       ['¿Tiene la carta NTA (Notice to Appear)? El número está arriba a la derecha.','¿Ha comparecido ya ante un juez de inmigración?'],
+  marital:       ['¿El matrimonio fue registrado en el Registro Civil del Estado?','¿Su cónyuge también tiene problemas con el régimen?'],
+  fatherName:    ['¿Su padre tuvo problemas con el régimen — detención, pérdida de empleo, actos de repudio?','¿El régimen fue a preguntar por el cliente a casa de su padre después de que salió?'],
+  motherName:    ['¿La Seguridad del Estado o la policía fue a preguntar por el cliente a casa de su madre?','¿Su madre ha sido interrogada o amenazada después de que el cliente salió del país?'],
+  siblings:      ['¿Algún hermano/a fue detenido, vigilado o perdió su trabajo por razones políticas?','¿Algún hermano/a también salió del país por razones similares?'],
+  familyPersecution: ['¿Quién específicamente fue afectado — nombre y relación?','¿Fue una detención, acto de repudio, pérdida de empleo o algo más?','¿El régimen dijo explícitamente por qué lo hacían — qué palabras usaron?','¿Cómo supo el cliente lo que le pasó a ese familiar?','¿Ese evento influyó en la decisión de salir del país?'],
+  primary:       ['¿Lo presionaban ya en la primaria para que se uniera a los Pioneros?','¿Tuvo algún problema por no participar en actos políticos desde pequeño?'],
+  university:    ['¿Quién lo sacó del aula — el profesor, un directivo del partido, alguien de la FEU?','¿Qué palabras exactas usaron — "gusano", "contrarrevolucionario", algo más?','¿Lo amenazaron con expulsarlo formalmente o con afectar sus notas?','¿Tuvo que firmar algún documento o comparecer ante alguna comisión disciplinaria?'],
+  educationDenied: ['¿Qué carrera o institución le negaron?','¿Le dijeron que era por no ser del partido o por sus antecedentes políticos?','¿Quién tomó la decisión — un rector, un funcionario del partido, el CDR?','¿Le dieron algún documento oficial o fue solo verbal?'],
+  profession:    ['¿El gobierno le exigía ser del partido para ejercer su profesión?','¿Perdió su licencia o empleo por razones políticas?'],
+  workplace:     ['¿Era empresa estatal o negocio privado (paladar, cuentapropista)?','¿Los inspectores del gobierno llegaban a extorsionar el negocio regularmente?','¿Le exigían afiliación al partido para mantener la licencia?'],
+  jobLost:       ['¿Quién tomó la decisión de despedirlo — nombre y cargo?','¿Le dijeron que era por no ser del partido o por ser "opositor"?','¿Le pusieron algún "expediente" o registro negativo que lo persiguiera en otros empleos?','¿Cuándo fue exactamente — mes y año?'],
+  persecutors:   ['¿Era Seguridad del Estado (G-2), policía política, CDR, UJC, o SEBIN/DGCIM (Venezuela)?','¿Usaba uniforme o ropa civil?','¿Mostró alguna credencial oficial?','¿Cómo se llamaba — escuchó su nombre o lo conocía de antes?','¿Cuál era su rango o cargo exacto?'],
+  threats:       ['¿Fue amenaza verbal, escrita, por citación oficial o a través del CDR?','¿Qué palabras exactas usaron — "gusano", "traidor", "contrarrevolucionario", "enemigo del pueblo"?','¿Había testigos presentes?','¿La amenaza venía de un agente identificado o fue anónima?'],
+  extortion:     ['¿Cuánto le exigían y con qué frecuencia llegaban?','¿Eran inspectores del Estado, policía o agentes del partido?','¿Qué pasó cuando no pudo pagar — cerraron el negocio, lo detuvieron?'],
+  informant:     ['¿Quién específicamente le pidió que fuera informante — nombre y cargo?','¿Qué le pedían que reportara — conversaciones de vecinos, actividades de familia, reuniones?','¿Qué le dijeron que pasaría si se negaba — palabras exactas?','¿Qué le respondió usted cuando se lo pidieron?'],
+  organizations: ['¿Qué organización le pidieron que apoyara — CDR, UJC, Partido Comunista, PSUV, FSLN?','¿Quién lo presionó — nombre y cargo?','¿Qué consecuencias tuvo su negativa — pérdida de empleo, expulsión académica, amenaza directa?','¿Qué le dijeron textualmente cuando se negó?'],
+  protests:      ['¿Participó en el 11J (Cuba), protestas del 2018 (Nicaragua) u otra manifestación?','¿Lo identificaron o fotografiaron en la protesta?','¿Qué hizo exactamente — gritó consignas, grabó, repartió material?','¿Tuvo consecuencias después — citación, detención, pérdida de empleo?'],
+  firstEvent:    ['¿Cuántos años tenía cuando ocurrió la primera señal?','¿Fue relacionado con el CDR, la escuela, el trabajo o la familia?','¿Ese evento cambió su forma de ver al régimen?'],
+  trigger:       ['¿Fue una detención, una citación, una amenaza directa o algo que le pasó a un familiar?','¿Quién estuvo presente — nombre o cargo del agente?','¿Qué palabras exactas dijeron?','¿Por qué ese evento y no los anteriores fue el punto de quiebre?'],
+  whyNoPolice:   ['¿La policía o Seguridad del Estado ERA el perseguidor — cómo podría denunciarle a ellos mismos?','¿Intentó ir de todas formas? ¿Qué pasó?','¿Conoce a alguien que denunció y le fue peor?'],
+  whyNoMove:     ['¿Intentó mudarse a otra provincia?','¿La Seguridad del Estado tiene alcance nacional — lo encontraron?','¿Su "expediente" político lo seguía a donde iba?'],
+  searchedAfter: ['¿Fue la Seguridad del Estado, la policía o el CDR quien fue a buscarle?','¿Cuándo exactamente — mes y año?','¿Qué dijeron textualmente — "gusana", "contrarrevolucionaria", "tiene asuntos pendientes"?'],
+  whatWouldHappen: ['¿Lo arrestarían al llegar al aeropuerto por salir sin permiso oficial?','¿Hay cargos penales abiertos contra usted en Cuba/Venezuela/Nicaragua?','¿Conoce personas deportadas que fueron arrestadas al llegar — qué les pasó?'],
+  // Event fields
+  fecha:        ['¿Recuerda el día exacto o solo el mes y año?','¿Fue durante una fecha política importante — 1ero de mayo, aniversario de la revolución?','¿Hay algo que lo ayude a ubicar la fecha con precisión?'],
+  lugar:        ['¿Fue en una estación de policía, sede del partido, su casa o la calle?','¿Cuál es el nombre oficial del lugar o la dirección exacta?','¿Hay personas del barrio que puedan confirmar que usted estuvo ahí?'],
+  quien:        ['¿Era Seguridad del Estado, G-2, policía política, CDR o SEBIN?','¿Usaba uniforme o ropa civil?','¿Mostró credenciales o usted lo conocía de antes?','¿Cuál era su nombre y rango?'],
+  dijeron:      ['¿Lo llamaron "gusano", "contrarrevolucionario", "traidor", "escoria" u otro insulto político?','¿Mencionaron al partido, la revolución o alguna organización?','¿Dijeron explícitamente por qué lo perseguían a usted específicamente?'],
+  hicieron:     ['¿Fue detención, golpiza, registro del hogar, acto de repudio o citación forzada?','¿Hubo daño físico que requirió atención médica?','¿Cuánto tiempo duró el evento?'],
+  nexo:         ['¿Le dijeron explícitamente que era por su postura política, por no ser del partido, o por sus familiares?','¿Ya lo habían vigilado o citado antes por las mismas razones?'],
+  testigos:     ['¿Había vecinos, familiares o personas del barrio presentes?','¿Le contó a alguien ese mismo día — familiar, amigo de confianza?'],
+  consecuencias:['¿Perdió su empleo o fue expulsado después de este evento?','¿Cambió su rutina diaria por miedo a una nueva detención?','¿Afectó la salud emocional de su familia — especialmente de padres o abuelos?'],
+},
+
+// ── PANDILLAS (Honduras, El Salvador, Guatemala, México) ─────────────────────
+gangs: {
+  name:          ['¿El nombre aparece exactamente igual en su DUI, pasaporte o acta de nacimiento?','¿Usó algún nombre diferente en documentos oficiales?'],
+  dob:           ['¿Tiene DUI, pasaporte u otro documento que confirme esa fecha?'],
+  birthCity:     ['¿En qué municipio y departamento queda esa ciudad?','¿Era zona controlada por alguna pandilla?'],
+  anumber:       ['¿Tiene la carta NTA? El número está arriba a la derecha.'],
+  fatherName:    ['¿Su padre también fue amenazado o extorsionado por la pandilla?','¿La pandilla fue a buscar al cliente a casa de su padre?'],
+  motherName:    ['¿La pandilla fue a preguntar por el cliente a casa de su madre después de que salió?','¿Su madre ha sido amenazada como forma de presión?'],
+  siblings:      ['¿Algún hermano fue reclutado, amenazado o asesinado por la pandilla?','¿La pandilla persigue a varios miembros de la familia?'],
+  familyPersecution: ['¿Quién específicamente fue afectado — nombre y relación?','¿La pandilla dijo explícitamente que era por causa del cliente?','¿Cuándo ocurrió — mes y año?','¿Qué le hicieron — amenaza, golpiza, asesinato, desaparición?','¿Hay testigos de lo que le dijeron a ese familiar?'],
+  university:    ['¿La pandilla controlaba el acceso a la escuela o universidad?','¿Lo amenazaron dentro del plantel educativo?','¿Tuvo que dejar de estudiar por las amenazas?'],
+  educationDenied: ['¿La pandilla le impidió acceder a la educación?','¿Tuvo que cambiar de escuela por amenazas?'],
+  workplace:     ['¿La pandilla extorsionaba el negocio donde trabajaba?','¿Cuánto le exigían y con qué frecuencia llegaban a cobrar?','¿Amenazaban con matar a los empleados si no pagaban?'],
+  jobLost:       ['¿Perdió el trabajo porque la pandilla amenazó al empleador?','¿El negocio tuvo que cerrar por las extorsiones?'],
+  persecutors:   ['¿Era MS-13, Barrio 18, Mara Salvatrucha, CJNG, Zetas u otro grupo?','¿Cómo los identificaba — tatuajes, ropa, señas particulares?','¿Tenían nombre de guerra o apodo?','¿Cuántos eran aproximadamente?','¿Usaban armas — qué tipo?'],
+  threats:       ['¿Fue amenaza verbal, escrita (panfleto, nota), por WhatsApp o a través de un familiar?','¿Qué palabras exactas usaron?','¿Dieron un plazo o una fecha límite?','¿Había testigos presentes?'],
+  extortion:     ['¿Cuánto exigían de "renta" y con qué frecuencia llegaban a cobrar?','¿Qué pasó la primera vez que no pudo pagar?','¿Amenazaban a familiares si no pagaba?','¿Siempre era la misma persona quien cobraba?'],
+  informant:     ['¿Le pidieron que reportara movimientos de vecinos o de policías?','¿Qué consecuencias le dijeron que habría si se negaba?'],
+  organizations: ['¿Le pidieron unirse a la pandilla?','¿Cuántas veces lo abordaron para reclutarlo?','¿Qué le dijeron que le pasaría si seguía negándose?'],
+  gangReason:    ['¿Le dijeron textualmente por qué lo elegían a usted — por su familia, su negocio, su barrio?','¿Cuándo fue el primer contacto con esa pandilla?','¿Cómo supo que era ese grupo específico?'],
+  firstEvent:    ['¿Cuántos años tenía cuando la pandilla lo abordó por primera vez?','¿Fue un reclutamiento, una extorsión o una amenaza directa?','¿Ese primer contacto cambió su rutina diaria?'],
+  trigger:       ['¿Fue un asesinato de familiar, un ataque directo o una amenaza de muerte con plazo?','¿Quiénes estuvieron presentes?','¿Qué dijeron exactamente?','¿Por qué ese evento fue el punto de quiebre?'],
+  whyNoPolice:   ['¿La policía está coludida con la pandilla en su zona?','¿Intentó denunciar? ¿Qué pasó — lo ignoraron, lo amenazaron, lo delataron a la pandilla?','¿Conoce personas que denunciaron y fueron asesinadas después?'],
+  whyNoMove:     ['¿La pandilla tiene presencia en todo el país o solo en su zona?','¿Intentó mudarse — lo encontraron?','¿La pandilla tiene "informantes" en otras ciudades?'],
+  searchedAfter: ['¿La pandilla fue a buscarle a casa de familiares?','¿Cuándo — mes y año?','¿Qué dijeron exactamente a sus familiares?'],
+  whatWouldHappen: ['¿Lo matarían por haber escapado sin pagar o sin unirse?','¿Conoce personas que regresaron y fueron asesinadas o desaparecidas?','¿La pandilla dejó algún mensaje diciendo lo que le harían si regresaba?'],
+  fecha:        ['¿Recuerda el día exacto o solo el mes y año?','¿Fue de día o de noche — la pandilla opera diferente según el horario?'],
+  lugar:        ['¿En qué colonia, barrio o municipio ocurrió?','¿Era zona controlada por esa pandilla?','¿Cuántas cuadras de su casa quedaba?'],
+  quien:        ['¿Era MS-13, Barrio 18 u otra pandilla — cómo los identificó?','¿Tenían tatuajes visibles o señas características?','¿Cuántos eran y portaban armas?','¿Conocía alguno de antes?'],
+  dijeron:      ['¿Lo amenazaron de muerte o solo le dieron una advertencia?','¿Mencionaron a algún familiar por nombre?','¿Dieron un plazo para cumplir sus exigencias?','¿Dijeron explícitamente por qué lo elegían a usted?'],
+  hicieron:     ['¿Hubo golpes, disparo al aire, robo, daño a propiedad?','¿Requirió atención médica?','¿Tomaron fotografías o grabaron video?'],
+  nexo:         ['¿Le dijeron que era por su negocio, su familia, su barrio o por haberse negado antes?','¿Su familiar o empleado fue atacado como advertencia hacia usted?'],
+  testigos:     ['¿Había vecinos, familiares o clientes presentes?','¿Le contó a alguien ese mismo día?','¿Alguien más del barrio puede confirmar que esa pandilla opera ahí?'],
+  consecuencias:['¿Tuvo que cerrar su negocio después de este evento?','¿Dejó de salir a la calle por miedo?','¿Su familia tuvo que mudarse o cambiar rutinas?'],
+},
+
+// ── COLOMBIA ──────────────────────────────────────────────────────────────────
+colombia: {
+  name:          ['¿El nombre aparece igual en su cédula de ciudadanía?','¿Ha usado algún nombre diferente en documentos oficiales?'],
+  dob:           ['¿Tiene cédula, pasaporte u otro documento que confirme esa fecha?'],
+  birthCity:     ['¿En qué municipio y departamento queda esa ciudad?','¿Era zona con presencia de grupos armados — FARC, ELN, paramilitares, disidencias?'],
+  fatherName:    ['¿Su padre fue amenazado o desplazado por grupos armados?','¿Algún grupo armado fue a preguntar por el cliente a casa de su padre?'],
+  motherName:    ['¿La madre ha recibido visitas o amenazas después de que el cliente salió?'],
+  siblings:      ['¿Algún hermano fue reclutado o amenazado por grupos armados?'],
+  familyPersecution: ['¿Quién específicamente fue afectado — nombre y relación?','¿Fue un desplazamiento forzado, amenaza, asesinato o desaparición?','¿El grupo armado dijo explícitamente que era por causa del cliente?','¿Cuándo ocurrió — mes y año?'],
+  workplace:     ['¿Los grupos armados extorsionaban el negocio?','¿Le exigían "vacuna" — cuánto y con qué frecuencia?','¿Amenazaron con matar empleados o familiares si no pagaba?'],
+  persecutors:   ['¿Era FARC, disidencias FARC, ELN, paramilitares, Clan del Golfo u otro grupo?','¿Cómo los identificaba — prendas militares, armas, panfletos?','¿Usaban nombres de guerra o apodos?','¿Operaban en todo el país o solo en su región?'],
+  threats:       ['¿Fue panfleto, llamada telefónica, amenaza en persona o a través de un intermediario?','¿Qué palabras exactas usaron?','¿Dieron un plazo para abandonar la zona o cumplir sus exigencias?'],
+  extortion:     ['¿Le cobraban "vacuna" — cuánto y con qué frecuencia?','¿Qué pasó cuando no pudo pagar?','¿Amenazaban a familiares o empleados?'],
+  informant:     ['¿Le pidieron información sobre movimientos del ejército, la policía o personas específicas?','¿Qué consecuencias dijeron que habría si se negaba?'],
+  organizations: ['¿Le pidieron unirse al grupo armado o apoyar su causa?','¿Le pidieron que se uniera como colaborador, informante o combatiente?'],
+  protests:      ['¿Participó en paros, marchas o actividades de liderazgo comunitario?','¿Fue líder social, defensor de derechos humanos o comunal?','¿Lo amenazaron por esa actividad específica?'],
+  firstEvent:    ['¿Cuándo fue el primer contacto con ese grupo armado?','¿Fue una extorsión, un reclutamiento o una amenaza directa?'],
+  trigger:       ['¿Fue un ataque directo, el asesinato de un conocido o una amenaza de muerte con plazo?','¿Qué dijeron exactamente?'],
+  whyNoPolice:   ['¿La policía o el ejército no tienen presencia en su zona?','¿Los grupos armados tienen infiltrados en las autoridades locales?','¿Intentó denunciar — qué pasó?'],
+  whyNoMove:     ['¿El grupo armado tiene presencia nacional — lo encontrarían en otra ciudad?','¿Intentó desplazarse — lo encontraron o tuvo los mismos problemas?'],
+  searchedAfter: ['¿El grupo armado fue a preguntar por el cliente a casa de familiares?','¿Cuándo — mes y año?','¿Qué dijeron exactamente?'],
+  whatWouldHappen: ['¿Lo matarían por haberse negado a colaborar o por haber escapado?','¿Conoce líderes sociales o personas en situación similar que fueron asesinadas?'],
+  fecha:        ['¿Recuerda el día exacto o solo el mes y año?','¿Fue durante un paro armado o en una fecha significativa para el grupo?'],
+  lugar:        ['¿En qué vereda, corregimiento o municipio ocurrió?','¿Era zona con presencia permanente de ese grupo?'],
+  quien:        ['¿Era FARC, disidencias, ELN, paramilitares o Clan del Golfo?','¿Vestían prendas militares o ropa civil?','¿Portaban armas de qué tipo?','¿Cuántos eran?'],
+  dijeron:      ['¿Lo llamaron "paraco", "sapo", "colaborador del enemigo" u otro término?','¿Mencionaron a familiares por nombre?','¿Dieron un plazo o ultimátum?'],
+  hicieron:     ['¿Fue amenaza con panfleto, llamada, desplazamiento forzado o ataque físico?','¿Hubo daño a propiedad — incendio, robo, destrucción de cultivos?'],
+  nexo:         ['¿Le dijeron que era por su liderazgo comunitario, su negocio, su familia o por haberse negado a colaborar?'],
+  testigos:     ['¿Hay testigos del incidente — vecinos, familiares, empleados?','¿Le contó a alguien ese mismo día?'],
+  consecuencias:['¿Tuvo que desplazarse de su municipio después de este evento?','¿Perdió su negocio, tierra o propiedad?','¿Su familia también tuvo que desplazarse?'],
+},
+
+// ── HAITÍ ─────────────────────────────────────────────────────────────────────
+haiti: {
+  name:          ['¿El nombre aparece igual en su acte de naissance o pasaporte?'],
+  dob:           ['¿Tiene pasaporte u otro documento que confirme esa fecha?'],
+  birthCity:     ['¿En qué commune y département queda esa ciudad?','¿Era zona controlada por alguna gang?'],
+  fatherName:    ['¿Su padre fue amenazado o secuestrado por una gang?'],
+  motherName:    ['¿La gang fue a preguntar por el cliente a casa de su madre?'],
+  familyPersecution: ['¿Quién fue afectado — nombre y relación?','¿Fue secuestro, amenaza de muerte, reclutamiento forzado o algo más?','¿Cuándo ocurrió?'],
+  persecutors:   ['¿Era G9, 400 Mawozo, Barbecut, Vitelhomme u otra gang?','¿Cómo los identificaba — uniformes, armas, colores?','¿Tenían nombre de guerra?'],
+  threats:       ['¿Fue amenaza verbal, nota escrita, mensaje por WhatsApp o a través de un intermediario?','¿Qué dijeron exactamente?','¿Dieron un plazo?'],
+  extortion:     ['¿Cuánto le exigían y con qué frecuencia?','¿Amenazaban con secuestrar a familiares si no pagaba?'],
+  firstEvent:    ['¿Cuándo fue el primer contacto con esa gang?','¿Fue un secuestro, una extorsión o una amenaza de reclutamiento?'],
+  trigger:       ['¿Fue un ataque, un secuestro frustrado o una amenaza de muerte directa?','¿Qué dijeron exactamente?'],
+  whyNoPolice:   ['¿La Policía Nacional de Haití (PNH) está coludida con las gangs en su zona?','¿Intentó denunciar — qué pasó?'],
+  whyNoMove:     ['¿Las gangs controlan múltiples zonas — lo encontrarían en otra?','¿Intentó mudarse?'],
+  fecha:        ['¿Recuerda el día exacto o solo el mes y año?'],
+  lugar:        ['¿En qué quartier o commune ocurrió?','¿Era zona controlada por esa gang?'],
+  quien:        ['¿Era G9, 400 Mawozo u otra gang — cómo los identificó?','¿Cuántos eran y portaban armas?'],
+  dijeron:      ['¿Qué palabras exactas usaron — amenaza de muerte, secuestro, reclutamiento?','¿Mencionaron a familiares?'],
+  hicieron:     ['¿Fue secuestro, golpiza, disparo, robo o daño a propiedad?','¿Requirió atención médica?'],
+  nexo:         ['¿Le dijeron por qué lo elegían a usted — su negocio, su familia, su posición en la comunidad?'],
+  testigos:     ['¿Había vecinos o familiares presentes?','¿Le contó a alguien ese mismo día?'],
+  consecuencias:['¿Tuvo que abandonar su casa o negocio?','¿Su familia también tuvo que huir?'],
+},
+
+// ── OTROS PAÍSES ─────────────────────────────────────────────────────────────
+other: {
   name:          ['¿El nombre aparece exactamente igual en todos sus documentos de identidad?','¿Tiene algún apodo o nombre adicional que haya usado en documentos oficiales?'],
   dob:           ['¿Tiene acta de nacimiento, pasaporte u otro documento que confirme esa fecha?','¿Ha usado alguna vez una fecha de nacimiento diferente en algún documento?'],
-  birthCity:     ['¿En qué municipio y provincia queda esa ciudad?','¿Vivió toda su infancia ahí o se mudó en algún momento?'],
-  anumber:       ['¿Tiene la carta NTA (Notice to Appear)? El número está en la parte superior derecha.','¿Ha comparecido ante algún juez de inmigración hasta ahora?','¿Tiene abogado de inmigración asignado?'],
-  marital:       ['¿Cuándo y dónde se casaron o formalizaron la unión?','¿El matrimonio fue registrado ante una institución oficial del gobierno?','¿Tiene certificado de matrimonio?'],
-  usAddress:     ['¿Cuánto tiempo lleva viviendo en esa dirección?','¿Vive con familiares o con otras personas?'],
-  // S2 — Cónyuge
-  spouseName:    ['¿El nombre está escrito exactamente igual en todos sus documentos?','¿Tiene pasaporte cubano o documento de identidad vigente?'],
-  spouseDob:     ['¿En qué municipio y provincia nació?','¿Tiene documentos que acrediten esa fecha y lugar de nacimiento?'],
-  spouseAsylum:  ['¿Está incluido como derivado en la misma aplicación I-589?','¿Cuál es su número A si tiene uno?','¿Ha tenido audiencias propias ante un juez de inmigración?'],
-  children:      ['Por cada hijo: ¿tiene documento de identidad, acta de nacimiento o pasaporte?','¿Algún hijo tiene su propio caso de asilo o estatus migratorio diferente?','¿Los hijos que están en Cuba corren algún riesgo por la situación del cliente?'],
-  // S3 — Familia extensa
-  fatherName:    ['¿Cuál es el municipio y provincia exactos de nacimiento del padre?','¿Tuvo el padre algún problema con el gobierno — detención, pérdida de empleo, actos de repudio?','¿El padre sabe que el cliente salió del país? ¿Ha sufrido represalias por eso?'],
-  motherName:    ['¿Cuál es el municipio y provincia exactos de nacimiento de la madre?','¿La madre ha sido visitada o interrogada por agentes del gobierno después de que el cliente salió?','¿La madre está al tanto de la situación del cliente en EE.UU.?'],
-  siblings:      ['¿Algún hermano/a fue perseguido, amenazado, detenido o perdió su empleo por razones políticas?','¿Algún hermano/a emigró también? ¿Por qué razones?','¿Los hermanos que quedan en Cuba están en la misma posición de riesgo que el cliente?'],
-  familyPersecution: [
-    '¿Quién específicamente fue afectado — nombre completo y relación con el cliente?',
-    '¿Cuándo ocurrió — mes y año exactos si los recuerda?',
-    '¿Qué le hicieron exactamente — detención, pérdida de empleo, golpes, amenaza directa, acto de repudio?',
-    '¿Qué institución o personas llevaron a cabo esa acción — nombre del agente, cargo, organización?',
-    '¿Le dijeron algo a ese familiar sobre por qué lo hacían — alguna frase o acusación específica?',
-    '¿Cómo se enteró el cliente de lo que le pasó a ese familiar?',
-    '¿Ese evento influyó en la decisión del cliente de salir del país?',
-  ],
-  // S4 — Educación
-  primary:       ['¿Cuál era la dirección o barrio de esa escuela?','¿Tuvo algún problema o discriminación en esa escuela por razones familiares o políticas?'],
-  secondary:     ['¿Participaba en actividades del partido en esa escuela?','¿Hubo presiones para unirse a la UJC u organizaciones del régimen durante la secundaria?'],
-  highschool:    ['¿Lo presionaron para afiliarse al partido durante el bachillerato?','¿Tuvo algún incidente político que lo marcara durante ese período?'],
-  university:    ['¿Lo sacaron del aula alguna vez? ¿Quién lo sacó y qué le dijo exactamente?','¿Amenazaron con expulsarlo formalmente? ¿Quién lo amenazó y en qué circunstancia?','¿Hubo consecuencias académicas concretas — notas bajas, pérdida de beca, expediente disciplinario?','¿Por qué razón específica lo consideraban opositor — qué había hecho o dicho?'],
-  educationDenied: [
-    '¿Qué oportunidad específica le negaron — ingreso a universidad, beca, carrera particular?',
-    '¿Quién tomó esa decisión — nombre, cargo e institución?',
-    '¿Qué razón oficial le dieron o le dijeron de manera informal?',
-    '¿Le dieron algo por escrito o fue solo verbal?',
-    '¿Intentó apelar o hablar con alguien más? ¿Qué pasó?',
-    '¿Conoce a otra persona a quien también le negaron esa oportunidad por razones similares?',
-  ],
-  // S5 — Trabajo
-  profession:    ['¿Ejercía esa profesión de manera independiente, en empresa estatal o privada?','¿Su profesión requería alguna afiliación al partido para ejercerla?'],
-  workplace:     ['¿Nombre exacto del establecimiento o empresa?','¿Era negocio estatal, privado o cooperativa?','¿Cuánto tiempo trabajó ahí?','¿Quién era su jefe directo — nombre y cargo?'],
-  jobLost:       [
-    '¿Quién tomó la decisión de despedirlo — nombre completo y cargo?',
-    '¿Qué razón oficial le dieron por escrito o verbalmente?',
-    '¿Cuándo fue exactamente — mes y año?',
-    '¿Le dijeron de manera directa o indirecta que era por razones políticas o por no pertenecer al partido?',
-    '¿Cómo supo que fue por su postura política y no por otra razón?',
-    '¿Hubo testigos del despido?',
-    '¿Qué consecuencias económicas tuvo — no podía pagar renta, alimentación, deudas?',
-  ],
-  // S6 — Persecución
-  persecutors:   [
-    '¿Nombre completo de cada persecutor si lo conoce?',
-    '¿Cargo exacto — teniente, mayor, jefe de sector, oficial del DTI, inspector?',
-    '¿A qué organización pertenece — Seguridad del Estado, G-2, SEBIN, policía municipal, CDR?',
-    '¿Descripción física — altura aproximada, complexión, edad, rasgo físico distintivo?',
-    '¿Cómo los identificó — mostraron credenciales, los conocía del barrio, lo dijeron ellos mismos?',
-    '¿Usaban uniforme o ropa civil?',
-  ],
-  gangReason:    [
-    '¿Cuándo y dónde fue el primer contacto con ese grupo?',
-    '¿Le dijeron algo específico sobre por qué lo buscaban a usted y no a otra persona?',
-    '¿Qué palabras exactas usaron para explicar su motivación?',
-    '¿Cómo supo que era ese grupo específico y no otro?',
-  ],
-  threats:       [
-    '¿Cuándo fue la amenaza — fecha o período exacto?',
-    '¿Fue verbal, escrita, por mensaje de texto, WhatsApp, llamada telefónica o a través de otra persona?',
-    '¿Qué palabras exactas usaron — recuerda alguna frase textual?',
-    '¿Quién entregó o dijo la amenaza — nombre o descripción física?',
-    '¿Había testigos presentes en ese momento?',
-    '¿Conserva el mensaje o evidencia de la amenaza?',
-  ],
-  extortion:     [
-    '¿Cuánto le exigían exactamente — monto en moneda local o dólares?',
-    '¿Con qué frecuencia llegaban a cobrar?',
-    '¿Qué pasó la primera vez que no pudo pagar — qué hicieron o dijeron?',
-    '¿Siempre era la misma persona quien cobraba o cambiaban?',
-    '¿Amenazaban a algún familiar si no pagaba?',
-  ],
-  informant:     [
-    '¿Quién específicamente le pidió que fuera informante — nombre y cargo?',
-    '¿Qué le pedían que reportara — conversaciones de vecinos, actividades de familiares, reuniones?',
-    '¿Qué le dijeron que pasaría si se negaba — palabras exactas si las recuerda?',
-    '¿Qué le respondió usted cuando se lo pidieron?',
-    '¿Cuándo ocurrió esa conversación — fecha o período?',
-  ],
-  organizations: [
-    '¿Qué organización específica le pidieron que apoyara o a la que se negó a unirse?',
-    '¿Quién lo presionó — nombre completo y cargo?',
-    '¿Cuándo fue esa conversación o presión — fecha o período?',
-    '¿Qué consecuencias específicas tuvo su negativa — pérdida de empleo, expulsión, amenaza directa?',
-    '¿Le dijeron algo textualmente cuando se negó — alguna frase que recuerde?',
-  ],
-  surveillance:  [
-    '¿Cómo sabía que lo vigilaban — vehículo estacionado frente a su casa, personas siguiéndolo a pie, llamadas extrañas?',
-    '¿Puede describir físicamente a quienes lo vigilaban — ropa, vehículo, horario habitual?',
-    '¿A qué horas llegaban o lo seguían — mañana, tarde, noche?',
-    '¿Alguien más notó la vigilancia — vecinos, familia, amigos?',
-    '¿Duraba días o semanas seguidas, o era intermitente?',
-  ],
-  protests:      [
-    '¿Fecha exacta de la protesta o actividad — día, mes y año?',
-    '¿Lugar exacto — ciudad, calle, plaza, nombre del sitio?',
-    '¿Qué hizo usted específicamente — gritó consignas, grabó video, repartió material, portó carteles?',
-    '¿Lo identificaron o fotografiaron en ese momento?',
-    '¿Tuvo consecuencias después — lo buscaron, lo citaron, lo despidieron, lo interrogaron?',
-    '¿Cuántas personas estaban presentes y quién más puede confirmar que usted estuvo ahí?',
-  ],
-  politicalAffil:[
-    '¿Tiene o tenía carné, membresía u otro documento de esa organización?',
-    '¿Qué actividades realizaba — reuniones, distribución de material, marchas, trabajo comunitario?',
-    '¿Las autoridades del régimen sabían de esa afiliación — cómo lo sabían?',
-    '¿Fue señalado públicamente por esa afiliación?',
-  ],
-  displacement:  [
-    '¿A qué ciudad o municipio específico se trasladó?',
-    '¿Cuánto tiempo estuvo ahí antes de tener problemas?',
-    '¿Cómo supieron dónde estaba — lo siguieron, les informaron, lo reconocieron?',
-    '¿Qué pasó específicamente en ese nuevo lugar — quién lo contactó, qué le dijeron o hicieron?',
-  ],
-  // S7 — Primera señal
-  firstEvent:    [
-    '¿Cuántos años tenía cuando ocurrió ese primer evento?',
-    '¿Qué pasó exactamente — quién lo hizo, qué le dijeron, qué consecuencias tuvo?',
-    '¿Alguien de su familia lo presenció o lo supo directamente?',
-    '¿Ese evento cambió su forma de comportarse o pensar sobre el régimen?',
-    '¿Qué entendió en ese momento sobre lo que el gobierno era capaz de hacer?',
-  ],
-  witnessEvent:  [
-    '¿Fecha y lugar exacto de lo que presenció — ciudad, calle, hora aproximada?',
-    '¿Quiénes eran los agresores — usaban uniforme, conocía sus caras, les escuchó nombres?',
-    '¿Cómo supieron que usted lo vio — lo vieron a usted, alguien los informó?',
-    '¿Cuánto tiempo después empezaron a buscarlo por ser testigo?',
-    '¿La persona que fue atacada puede confirmar lo que usted vio?',
-  ],
-  priorPatterns: [
-    '¿Cuándo comenzó el primer contacto o señal de peligro — fecha o período?',
-    '¿Qué forma tomó esa primera señal — amenaza verbal, visita, mensaje?',
-    '¿Cómo escaló desde esa primera señal hasta el evento más grave?',
-    '¿Cuánto tiempo pasó entre el primer contacto y la decisión de salir del país?',
-  ],
-  // S8 — Documentos
-  documents:     [
-    '¿Qué institución emitió el documento — nombre completo?',
-    '¿Tiene el documento original, una copia fotográfica o solo recuerda el contenido?',
-    '¿Aparece número de caso o expediente en el documento?',
-    '¿Quién lo firmó — nombre y cargo si aparece?',
-    '¿Cómo se lo entregaron — en persona, lo dejaron en casa, por correo?',
-    '¿Dónde está ese documento ahora — lo tiene el cliente, un familiar, lo perdió?',
-  ],
-  // S9 — Evento detonante
-  trigger:       [
-    '¿Fecha exacta — día, mes y año?',
-    '¿Dónde ocurrió exactamente — dirección, nombre del lugar?',
-    '¿Quién estuvo presente — nombre o descripción física de cada persona?',
-    '¿Qué dijeron textualmente — recuerda alguna frase exacta?',
-    '¿Hubo testigos que pueden corroborar lo ocurrido?',
-    '¿Qué consecuencias físicas o emocionales tuvo ese evento?',
-  ],
-  decisionReason:[
-    '¿Por qué ese evento fue el punto de quiebre y no los eventos anteriores?',
-    '¿Qué alternativas consideró antes de decidir salir — mudarse, denunciar, esconderse?',
-    '¿Consultó con alguien antes de tomar la decisión — familia, amigo, conocido?',
-    '¿Cuánto tiempo tardó en tomar la decisión definitiva después de ese evento?',
-  ],
-  timeBefore:    ['¿Qué hizo durante ese tiempo — se escondió, siguió trabajando, se preparó?','¿Tuvo más incidentes durante ese período de espera?'],
-  whoKnew:       [
-    '¿A cuántas personas les contó que se iba?',
-    '¿Qué pretexto usó para no levantar sospechas — viaje de trabajo, visita familiar?',
-    '¿Algún familiar o conocido intentó impedirle salir o alertó a las autoridades?',
-    '¿Le pidió a alguien que guardara sus pertenencias o cuidara a sus hijos?',
-  ],
-  // S10 — Protección interna
-  whyNoPolice:   [
-    '¿Intentó ir a denunciar alguna vez, aunque fuera una vez?',
-    '¿Qué ocurrió exactamente — quién lo atendió, qué nombre tenía, qué le dijo?',
-    '¿Le dijeron explícitamente que no podían ayudarlo o simplemente ignoraron la denuncia?',
-    '¿Había alguna razón por la que ir a denunciar habría sido peligroso para usted específicamente?',
-    '¿Conoce a alguna persona que denunció y le fue peor después — qué le pasó?',
-  ],
-  whyNoMove:     [
-    '¿Intentó mudarse a otra ciudad o provincia?',
-    '¿Qué pasó cuando lo intentó — lo encontraron, tuvo los mismos problemas, no pudo conseguir trabajo?',
-    '¿Por qué cree que el perseguidor podía encontrarlo en otra ciudad — tiene contactos, la organización es nacional, tiene familiares allá?',
-    '¿Cuánto tiempo estuvo en ese otro lugar antes de que lo encontraran?',
-  ],
-  // S11 — Ruta
-  departureDate: [
-    '¿Tenía pasaporte válido o usó otro documento para salir?',
-    '¿Salió solo o con otras personas?',
-    '¿Pasó algún control migratorio al salir — le sellaron documentos, lo interrogaron?',
-  ],
-  route:         [
-    '¿Cuánto tiempo estuvo en cada país — días, semanas?',
-    '¿Tenía visa o permiso para estar en alguno de esos países?',
-    '¿Usó los servicios de un coyote o guía para algún tramo del viaje?',
-  ],
-  travelIncidents:[
-    '¿En qué país o lugar ocurrió el incidente?',
-    '¿Quiénes estuvieron involucrados — autoridades, criminales, otros migrantes?',
-    '¿Hubo consecuencias físicas — lesiones, hospitalización, pérdida de dinero o documentos?',
-    '¿Hay alguna evidencia de ese incidente — reporte médico, fotografías, testigos?',
-  ],
-  whyNoAsylumTransit:[
-    '¿Intentó pedir información sobre el proceso de asilo en algún país de tránsito?',
-    '¿Qué condiciones específicas vio en cada país que le indicaron que no era seguro?',
-    '¿Sufrió algún incidente en algún país de tránsito que reforzó esa decisión?',
-    '¿Cuándo decidió que su destino definitivo sería Estados Unidos?',
-  ],
-  // S12 — Llegada EE.UU.
-  entryDate:     [
-    '¿Por qué punto exacto cruzó la frontera — nombre del cruce o ciudad?',
-    '¿Entró por un puerto oficial o cruzó de manera irregular?',
-    '¿Cuántas personas cruzaron con usted?',
-  ],
-  detained:      [
-    '¿Cómo se llamaba el centro o instalación donde estuvo detenido?',
-    '¿Cuántos días exactamente estuvo detenido?',
-    '¿Le tomaron huellas y fotografías?',
-    '¿Tuvo alguna entrevista de miedo creíble con un oficial de asilo?',
-    '¿Tuvo acceso a un abogado mientras estuvo detenido?',
-  ],
-  courtDate:     ['¿En qué ciudad o estado es la corte?','¿Tiene abogado de inmigración representándolo?','¿Ha tenido ya alguna audiencia ante el juez?'],
-  lifeInUS:      [
-    '¿Tiene empleo formal actualmente?',
-    '¿Sus hijos están inscritos en escuela en EE.UU.?',
-    '¿Tiene familiares en EE.UU. — cuáles y qué estatus migratorio tienen?',
-    '¿Ha tenido algún problema legal en EE.UU.?',
-    '¿Pertenece a alguna comunidad, iglesia u organización aquí?',
-  ],
-  // S13 — No puede regresar
-  searchedAfter: [
-    '¿Quién específicamente le informó que lo buscan — nombre y relación con el cliente?',
-    '¿Cuándo fue exactamente — mes y año?',
-    '¿Qué dijeron o hicieron las personas que buscaban — alguna frase textual?',
-    '¿Fueron a casa de familiares, a su trabajo anterior, a su barrio?',
-    '¿Esa persona que lo buscaba mostró algún documento o identificación oficial?',
-  ],
-  citations:     [
-    '¿Qué tipo de documento dejaron — citación, orden de arresto, notificación?',
-    '¿Quién lo entregó — policía uniformado, persona civil, lo deslizaron bajo la puerta?',
-    '¿Qué decía el documento — tiene número de caso, qué cargos mencionaba?',
-    '¿Tiene fotografía de ese documento?',
-  ],
-  whatWouldHappen:[
-    '¿Qué le pasaría específicamente en los primeros días de llegar — lo arrestarían, el perseguidor lo buscaría?',
-    '¿Conoce personas que regresaron y sufrieron consecuencias — nombre o relación, qué les pasó?',
-    '¿Hay órdenes de arresto, cargos penales o causas judiciales abiertas contra usted?',
-    '¿Por qué específicamente usted no puede mudarse a otra ciudad dentro de su país?',
-  ],
-  situationWorse:[
-    '¿Con qué frecuencia habla con sus familiares en el país?',
-    '¿Qué cambios concretos le han descrito — más represión, escasez, detenciones, violencia?',
-    '¿Ha habido eventos políticos o sociales recientes que hayan empeorado la situación?',
-  ],
-  returnExamples:[
-    '¿Nombre o relación de esa persona con el cliente?',
-    '¿Cuándo regresó — año aproximado?',
-    '¿Qué le ocurrió exactamente al llegar — fue detenido, interrogado, le pasó algo físico?',
-    '¿Cómo supo el cliente lo que le pasó — se lo contaron, vio noticias, fue testigo?',
-  ],
-  // S14 — Evidencia
-  digitalThreats:[
-    '¿Aún tiene acceso a esa cuenta o plataforma?',
-    '¿Los mensajes tienen fecha y hora visible?',
-    '¿Se puede identificar a los remitentes — número de teléfono, nombre de usuario?',
-    '¿Tiene capturas de pantalla guardadas en su teléfono o en la nube?',
-    '¿El contenido menciona nombres, lugares o referencias específicas al caso?',
-  ],
-  officialDocs:  [
-    '¿Tiene el documento original, una copia o solo recuerda el contenido?',
-    '¿El documento tiene número de expediente o caso?',
-    '¿Quién firmó el documento — nombre y cargo si aparece?',
-    '¿Qué institución emitió el documento — nombre completo?',
-    '¿Dónde está ese documento ahora?',
-  ],
-  medical:       [
-    '¿Nombre del médico o institución?',
-    '¿Tiene el récord médico o un diagnóstico escrito?',
-    '¿El documento menciona la causa de las lesiones o el diagnóstico específico?',
-    '¿Esa atención fue pagada por el gobierno o privada?',
-  ],
-  witnesses:     [
-    '¿Esa persona vive en EE.UU. o en el país de origen?',
-    '¿Está dispuesta a declarar ante la corte o firmar una carta notariada?',
-    '¿Presenció el evento directamente o solo lo sabe por lo que el cliente le contó?',
-    '¿Cuál es su nombre completo y cómo se puede contactar?',
-  ],
-  familyRetaliation: [
-    '¿Quién específicamente fue afectado — nombre completo y relación con el cliente?',
-    '¿Cuándo ocurrió — mes y año exactos?',
-    '¿Qué le hicieron exactamente — detención, golpes, amenaza, pérdida de empleo?',
-    '¿Le dijeron explícitamente a ese familiar que era por causa del cliente — qué palabras usaron?',
-    '¿Ese familiar está dispuesto a declarar o enviar una carta?',
-  ],
-};
+  birthCity:     ['¿En qué municipio y provincia/departamento queda esa ciudad?','¿Vivió toda su infancia ahí o se mudó en algún momento?'],
+  anumber:       ['¿Tiene la carta NTA (Notice to Appear)? El número está en la parte superior derecha.','¿Ha comparecido ante algún juez de inmigración hasta ahora?'],
+  marital:       ['¿Cuándo y dónde se casaron o formalizaron la unión?','¿El matrimonio fue registrado ante una institución oficial?'],
+  fatherName:    ['¿Su padre tuvo algún problema con el gobierno o grupos armados?','¿Alguien fue a preguntar por el cliente a casa de su padre después de que salió?'],
+  motherName:    ['¿Su madre ha sido visitada o interrogada después de que el cliente salió?'],
+  siblings:      ['¿Algún hermano/a fue perseguido, amenazado o tuvo que emigrar por razones similares?'],
+  familyPersecution: ['¿Quién específicamente fue afectado — nombre completo y relación?','¿Cuándo ocurrió — mes y año?','¿Qué le hicieron exactamente?','¿Le dijeron algo sobre por qué lo hacían?','¿Cómo se enteró el cliente?','¿Ese evento influyó en la decisión de salir?'],
+  primary:       ['¿Tuvo algún problema o discriminación en la escuela primaria?'],
+  university:    ['¿Lo presionaron para afiliarse a alguna organización durante la universidad?','¿Tuvo consecuencias académicas por su postura política o religiosa?'],
+  educationDenied: ['¿Qué oportunidad específica le negaron?','¿Quién tomó esa decisión y qué razón dieron?','¿Le dieron algo por escrito?'],
+  profession:    ['¿Ejercía de forma independiente o en empresa?','¿Su profesión requería alguna afiliación política para ejercerla?'],
+  workplace:     ['¿Nombre exacto del lugar?','¿Era estatal o privado?','¿Lo amenazaron, extorsionaron o forzaron a cerrar?'],
+  jobLost:       ['¿Quién tomó la decisión — nombre y cargo?','¿Qué razón oficial dieron?','¿Cuándo fue — mes y año?','¿Cómo supo que fue por razones políticas?'],
+  persecutors:   ['¿Nombre completo si lo conoce?','¿Cargo exacto y organización?','¿Descripción física — altura, complexión, rasgos distintivos?','¿Cómo los identificó?','¿Usaban uniforme o ropa civil?'],
+  threats:       ['¿Fue verbal, escrita, por mensaje o a través de otra persona?','¿Qué palabras exactas usaron?','¿Había testigos presentes?','¿Conserva alguna evidencia?'],
+  extortion:     ['¿Cuánto exigían y con qué frecuencia?','¿Qué pasó cuando no pudo pagar?','¿Amenazaban a familiares?'],
+  informant:     ['¿Quién se lo pidió — nombre y cargo?','¿Qué le pedían que reportara?','¿Qué le dijeron que pasaría si se negaba?'],
+  organizations: ['¿Qué organización le pidieron que apoyara?','¿Quién lo presionó?','¿Qué consecuencias tuvo su negativa?'],
+  surveillance:  ['¿Cómo sabía que lo vigilaban?','¿Puede describir físicamente a quienes lo vigilaban?','¿Alguien más lo notó?'],
+  protests:      ['¿Fecha y lugar exacto?','¿Qué hizo específicamente?','¿Lo identificaron o fotografiaron?','¿Tuvo consecuencias después?'],
+  firstEvent:    ['¿Cuántos años tenía?','¿Qué pasó exactamente?','¿Alguien de su familia lo presenció?','¿Ese evento cambió su forma de pensar?'],
+  trigger:       ['¿Fecha exacta?','¿Quién estuvo presente?','¿Qué dijeron textualmente?','¿Por qué ese fue el punto de quiebre?'],
+  whyNoPolice:   ['¿Intentó denunciar alguna vez?','¿Qué ocurrió exactamente?','¿Denunciar habría sido peligroso?','¿Conoce personas que denunciaron y les fue peor?'],
+  whyNoMove:     ['¿Intentó mudarse a otra ciudad?','¿Qué pasó cuando lo intentó?','¿Por qué el perseguidor podía encontrarlo en otro lugar?'],
+  searchedAfter: ['¿Quién le informó que lo buscan?','¿Cuándo — mes y año?','¿Qué dijeron textualmente?','¿Fueron a casa de familiares?'],
+  whatWouldHappen: ['¿Qué le pasaría específicamente al llegar?','¿Conoce personas que regresaron y sufrieron consecuencias?','¿Hay órdenes de arresto abiertas?'],
+  fecha:        ['¿Recuerda el día exacto o solo el mes y año?','¿Fue de día o de noche?','¿Hay algo que lo ayude a ubicar la fecha?'],
+  lugar:        ['¿Cuál es la dirección exacta o el nombre del lugar?','¿Es un lugar público o privado?','¿Hay testigos que puedan confirmar que usted estuvo ahí?'],
+  quien:        ['¿Nombre completo o apodo si lo conoce?','¿Cargo o afiliación — gobierno, grupo armado, policía?','¿Descripción física — altura, complexión, rasgo distintivo?','¿Usaban uniforme o ropa civil?'],
+  dijeron:      ['¿Recuerda alguna frase textual?','¿Mencionaron su nombre, el de algún familiar, o alguna organización?','¿Usaron algún término político o insulto específico?'],
+  hicieron:     ['¿Hubo contacto físico — golpes, sujeción?','¿Usaron armas?','¿Requirió atención médica después?'],
+  nexo:         ['¿Le dijeron explícitamente por qué lo elegían a usted?','¿Había algo que lo distinguía de otras personas presentes?'],
+  testigos:     ['¿Había personas presentes?','¿Le contó a alguien inmediatamente después?'],
+  consecuencias:['¿Tuvo que cambiar su rutina?','¿Afectó su trabajo o su familia?','¿Desarrolló problemas de salud emocional?'],
+},
 
-// Detect if answer is too short to be useful (< 15 chars or just yes/no/si/no)
-function isShortAnswer(val) {
-  if (!val) return false;
-  const v = val.trim().toLowerCase();
-  const shortPatterns = /^(s[ií]|no|ok|okay|sí|nada|ninguno|ninguna|nunca|siempre|tal vez|no sé|no se|quizás|quizas|a veces|aveces|normal|bien|mal|todo|todos|nada más|no recuerdo|no me acuerdo)$/i;
-  return v.length < 20 || shortPatterns.test(v);
-}
-
-function getFollowupQuestions(qId) {
-  return FOLLOWUP_QUESTIONS[qId] || null;
-}
+}; // end FOLLOWUP_BY_GROUP
 
 function renderFollowupBlock(qId, value) {
   const followups = getFollowupQuestions(qId);
