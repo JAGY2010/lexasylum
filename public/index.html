@@ -1123,7 +1123,7 @@ Responde SOLO con las 4 preguntas numeradas, sin introducción ni explicación.`
   const container = document.getElementById('ai-followup-' + qId);
 
   try {
-    const text = await callStreaming('claude-sonnet-4-6', 500,
+    const text = await callStreaming('claude-opus-4-7', 500,
       [{ role: 'user', content: prompt }],
       () => {}
     );
@@ -1654,7 +1654,7 @@ ${text.substring(0, 5000)}`;
   try {
     const resp = await fetch('/api/claude', {
       method:'POST', headers:{'Content-Type':'application/json','x-session-token':_authToken||''},
-      body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:2000, messages:[{role:'user',content:extractPrompt}] })
+      body: JSON.stringify({ model:'claude-opus-4-7', max_tokens:2000, messages:[{role:'user',content:extractPrompt}] })
     });
     const data = await resp.json();
     if (data.error) throw new Error(data.error.message);
@@ -2075,7 +2075,7 @@ Lista numerada de todas las preguntas [PENDIENTE].`;
         </div>
       </div>`;
 
-    const rawText_raw = await callStreaming('claude-sonnet-4-6', 32000,
+    const rawText_raw = await callStreaming('claude-opus-4-7', 32000,
       [{ role: 'user', content: prompt }],
       (chunk) => {
         streamedText += chunk;
@@ -2193,7 +2193,7 @@ Return ONLY a valid JSON array, no markdown, no explanation:
 ]`;
 
     const text = await callStreaming(
-      'claude-sonnet-4-6',
+      'claude-opus-4-7',
       4000,
       [{ role: 'user', content: newsPrompt }],
       null,
@@ -2525,7 +2525,7 @@ async function processPdfFile(file) {
   try {
     const base64 = await new Promise((res,rej) => { const r=new FileReader(); r.onload=()=>res(r.result.split(',')[1]); r.onerror=rej; r.readAsDataURL(file); });
     const resp = await fetch('/api/claude', { method:'POST', headers:{'Content-Type':'application/json','x-session-token':_authToken||''},
-      body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:8000, messages:[{role:'user',content:[{type:'document',source:{type:'base64',media_type:'application/pdf',data:base64}},{type:'text',text:'Extract the complete text of this asylum declaration. Return ONLY the plain text with numbered paragraphs.'}]}]})});
+      body: JSON.stringify({ model:'claude-opus-4-7', max_tokens:8000, messages:[{role:'user',content:[{type:'document',source:{type:'base64',media_type:'application/pdf',data:base64}},{type:'text',text:'Extract the complete text of this asylum declaration. Return ONLY the plain text with numbered paragraphs.'}]}]})});
     const data = await resp.json();
     if (data.error) throw new Error(data.error.message);
     const text = data.content.map(i=>i.type==='text'?i.text:'').join('').trim();
@@ -2612,7 +2612,7 @@ ${_reviewText.substring(0, 60000)}`;
   try {
     // Use streaming for large declarations to avoid 504 timeout
     const raw = await callStreaming(
-      'claude-sonnet-4-6',
+      'claude-opus-4-7',
       4000,
       [{ role: 'user', content: reviewPrompt }],
       () => { btn.textContent = '⏳ Analizando...'; }
@@ -2944,7 +2944,7 @@ Devuelve ÚNICAMENTE la declaración mejorada completa, numerada de principio a 
     };
 
     let improved = await callStreaming(
-      'claude-sonnet-4-6',
+      'claude-opus-4-7',
       16000,
       [{ role: 'user', content: improvePrompt }],
       showProgress
@@ -3192,7 +3192,7 @@ ${generatedData.declarationText.substring(0,2000)}`;
 
   // Retry up to 3 times with delay if rate limited
   const callAnalysis = async (attemptsLeft) => {
-    const resp=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json','x-session-token':_authToken||''},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1500,messages:[{role:'user',content:aPrompt}]})});
+    const resp=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json','x-session-token':_authToken||''},body:JSON.stringify({model:'claude-opus-4-7',max_tokens:1500,messages:[{role:'user',content:aPrompt}]})});
     const data=await resp.json();
     if(data.error) {
       const isRateLimit = (data.error.message||'').toLowerCase().includes('rate limit') || (data.error.message||'').includes('30,000');
@@ -3402,7 +3402,7 @@ Devuelve la declaración completa mejorada. Párrafos numerados (1. 2. 3...), pr
     let improved = '';
     resultDiv.innerHTML = `<div class="analysis-card" style="border-color:var(--gold)"><h3>⏳ Mejorando... <span id="improveWordCount" style="font-weight:400;font-size:13px;color:var(--muted)">0 palabras</span></h3><div id="improvePreview" style="background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:16px;font-size:13px;line-height:1.8;white-space:pre-wrap;max-height:300px;overflow-y:auto;color:var(--text)"></div></div>`;
 
-    improved = await callStreaming('claude-sonnet-4-6', 16000,
+    improved = await callStreaming('claude-opus-4-7', 16000,
       [{ role: 'user', content: improvePrompt }],
       (chunk) => {
         improved += chunk;
@@ -3579,7 +3579,7 @@ async function getOrTranslate(btn) {
 
 SPANISH ORIGINAL:
 ${snapshot}`;
-  const en = await callStreaming('claude-sonnet-4-6', 16000,
+  const en = await callStreaming('claude-opus-4-7', 16000,
     [{ role: 'user', content: translationPrompt }],
     () => { if (btn) btn.textContent = '⏳ Traduciendo...'; }
   );
