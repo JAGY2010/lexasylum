@@ -2374,27 +2374,29 @@ async function fetchNews(country, groundEN, dateFrom, dateTo, currentYear, perse
     }
 
     const newsPrompt = `You are a legal research assistant for an immigration law firm.
-Search the web and find 8 real published news articles in ENGLISH about ${country} relevant to asylum based on: ${groundEN}.
+Search the web and find 5 real published news articles in ENGLISH about ${country} relevant to asylum based on: ${groundEN}.
 
 CASE CONTEXT: ${context}
 
-PERIOD 1 — HISTORICAL (${dateFrom}-${dateTo}): 4 articles documenting conditions during the client's events.
-PERIOD 2 — CURRENT (${currentYear-1}-${currentYear}): 4 RECENT articles showing the situation has NOT improved.
+PERIOD 1 — HISTORICAL (${dateFrom}-${dateTo}): 2-3 articles documenting conditions during the client's events.
+PERIOD 2 — CURRENT (${currentYear-1}-${currentYear}): 2-3 RECENT articles showing the situation has NOT improved.
 
 Priority sources: OSAC, U.S. State Department Human Rights Reports, Human Rights Watch, Amnesty International, Freedom House, major news (CNN, Reuters, BBC, AP).
 
 Focus on: political repression, human rights abuses, arbitrary detention, persecutors: ${persecutor || 'government authorities'}.
 
+IMPORTANT: After completing your web searches, you MUST output the final JSON array. Do not stop after searching — you must write the JSON response.
+
 Return ONLY a JSON array, no markdown:
-[{"title":"...","source":"...","date":"...","url":"https://...","summary":"Attorney-style summary explaining how this evidence supports the asylum claim","relevance":"Specific legal element supported","period":"historical or current"}]`;
+[{"title":"...","source":"...","date":"...","url":"https://...","summary":"Brief attorney summary","relevance":"Legal element supported","period":"historical or current"}]`;
 
     const resp = await fetch('/api/claude', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-session-token': _authToken || '' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 2000,
-        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 5 }],
+        max_tokens: 4000,
+        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }],
         messages: [{ role: 'user', content: newsPrompt }]
       })
     });
