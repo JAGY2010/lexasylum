@@ -2476,7 +2476,8 @@ async function retryArticlesOnly() {
       : document.getElementById('groundType')?.value === 'Pertenencia a grupo social' ? 'particular social group'
       : 'political persecution');
     const currentYear = new Date().getFullYear();
-    const newsItems = await fetchNews(country, groundEN, generatedData.dateFrom, generatedData.dateTo, currentYear, get('persecutors'));
+    const persecutor = answers['persecutors']?.value || '';
+    const newsItems = await fetchNews(country, groundEN, generatedData.dateFrom, generatedData.dateTo, currentYear, persecutor);
     generatedData.newsItems = newsItems;
     saveCurrentCase(true);
     renderNews(generatedData);
