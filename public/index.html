@@ -40,6 +40,7 @@
       <button class="admin-tab active" onclick="adminTab('dashboard')">📊 Dashboard</button>
       <button class="admin-tab" onclick="adminTab('firms')">🏢 Firmas</button>
       <button class="admin-tab" onclick="adminTab('users')">👤 Usuarios</button>
+      <button class="admin-tab" onclick="adminTab('billing')">💰 Facturación</button>
       <button class="admin-tab" onclick="adminTab('account')">🔑 Mi Cuenta</button>
     </div>
 
@@ -88,6 +89,13 @@
       <button class="admin-btn-sm success" onclick="createUser()">+ Crear Usuario</button>
       <h3 style="margin:24px 0 12px">Usuarios Existentes</h3>
       <div id="usersList"></div>
+    </div>
+
+    <!-- Billing -->
+    <div id="admin-billing" class="admin-section">
+      <div id="billingContent">
+        <div class="loading-state"><div class="spinner"></div></div>
+      </div>
     </div>
 
     <!-- Account -->
@@ -344,6 +352,16 @@ async function saveCaseToServer(caseData) {
   } catch(e) { console.warn('Could not save case to server:', e.message); }
 }
 
+async function recordBillingEvent(eventType, caseId, caseName) {
+  if (!_authToken || !_currentUser || _currentUser.role === 'superadmin') return;
+  try {
+    await authFetch('/api/billing/event', {
+      method: 'POST',
+      body: JSON.stringify({ eventType, caseId: String(caseId||''), caseName: caseName||'' })
+    });
+  } catch(e) { console.warn('Billing event error:', e.message); }
+}
+
 async function deleteCaseFromServer(caseId) {
   try {
     await authFetch(`/api/cases/${caseId}`, { method: 'DELETE' });
@@ -363,8 +381,147 @@ function closeAdminPanel() {
 }
 
 function adminTab(tab) {
-  document.querySelectorAll('.admin-tab').forEach((t,i) => t.classList.toggle('active', ['dashboard','firms','users','account'][i]===tab));
+  document.querySelectorAll('.admin-tab').forEach((t,i) => t.classList.toggle('active', ['dashboard','firms','users','billing','account'][i]===tab));
   document.querySelectorAll('.admin-section').forEach(s => s.classList.toggle('active', s.id === 'admin-'+tab));
+  if (tab === 'billing') loadBilling();
+}
+
+async function loadBilling() {
+  const el = document.getElementById('billingContent');
+  el.innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
+  try {
+    const res = await authFetch('/api/billing/summary');
+    if (!res.ok) throw new Error('Error cargando facturación');
+    const firms = await res.json();
+    if (firms.length === 0) {
+      el.innerHTML = '<p style="color:var(--muted);font-size:13px">No hay firmas activas para facturar.</p>';
+      return;
+    }
+    el.innerHTML = firms.map(f => `
+      <div style="background:white;border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px;box-shadow:var(--shadow)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+          <div>
+            <div style="font-family:'Playfair Display',serif;font-size:16px;color:var(--navy);font-weight:700">${escHtml(f.name)}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">Código: ${escHtml(f.code)} · Período desde: ${f.period_started ? new Date(f.period_started).toLocaleDateString('es') : 'Sin iniciar'}</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button onclick="showBillingDetail(${f.id},'${escHtml(f.name)}')" style="background:var(--cream);color:var(--navy);border:1px solid var(--border);border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer">📋 Ver detalle</button>
+            <button onclick="closePeriod(${f.id},'${escHtml(f.name)}')" style="background:linear-gradient(135deg,#2d6a4f,#52b788);color:white;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer">💳 Cobrar y cerrar período</button>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
+          <div style="background:var(--cream);border-radius:8px;padding:12px;text-align:center">
+            <div style="font-size:22px;font-weight:700;color:var(--navy)">${f.current_cases||0}</div>
+            <div style="font-size:11px;color:var(--muted)">Casos generados</div>
+          </div>
+          <div style="background:var(--cream);border-radius:8px;padding:12px;text-align:center">
+            <div style="font-size:22px;font-weight:700;color:var(--navy)">${f.current_reviews||0}</div>
+            <div style="font-size:11px;color:var(--muted)">Revisiones</div>
+          </div>
+          <div style="background:rgba(200,169,110,0.1);border-radius:8px;padding:12px;text-align:center">
+            <div style="font-size:22px;font-weight:700;color:var(--navy)">$${parseFloat(f.current_total||0).toFixed(2)}</div>
+            <div style="font-size:11px;color:var(--muted)">Total a cobrar</div>
+          </div>
+          <div style="background:var(--cream);border-radius:8px;padding:12px">
+            <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:6px">Precios</div>
+            <div style="font-size:12px;color:var(--text)">Caso: <strong>$${parseFloat(f.price_case||400).toFixed(2)}</strong></div>
+            <div style="font-size:12px;color:var(--text)">Revisión: <strong>$${parseFloat(f.price_review||300).toFixed(2)}</strong></div>
+            <button onclick="editPrices(${f.id},'${escHtml(f.name)}',${f.price_case||400},${f.price_review||300})" style="margin-top:6px;background:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;color:var(--navy)">✏️ Editar</button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  } catch(e) {
+    el.innerHTML = `<div class="alert error">${e.message}</div>`;
+  }
+}
+
+async function showBillingDetail(firmId, firmName) {
+  const res = await authFetch(`/api/billing/firm/${firmId}`);
+  if (!res.ok) return alert('Error cargando detalle');
+  const data = await res.json();
+  const { events, periods } = data;
+
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9000;display:flex;align-items:flex-start;justify-content:center;padding:30px 20px;overflow-y:auto';
+  modal.innerHTML = `
+    <div style="background:white;border-radius:14px;width:100%;max-width:800px;padding:28px;box-shadow:0 24px 80px rgba(0,0,0,0.3)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <h3 style="font-family:'Playfair Display',serif;color:var(--navy);margin:0">💰 Detalle — ${escHtml(firmName)}</h3>
+        <button onclick="this.closest('[style*=fixed]').remove()" style="background:none;border:none;font-size:22px;cursor:pointer">✕</button>
+      </div>
+
+      <h4 style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.4px">Período Actual</h4>
+      ${events.filter(e => !e.period_started || new Date(e.billed_at) >= new Date(events[0]?.period_started || 0)).length === 0
+        ? '<p style="color:var(--muted);font-size:13px">Sin actividad en el período actual.</p>'
+        : `<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:24px">
+          <thead><tr style="border-bottom:2px solid var(--border)">
+            <th style="text-align:left;padding:8px;font-size:11px;color:var(--muted);text-transform:uppercase">Fecha</th>
+            <th style="text-align:left;padding:8px;font-size:11px;color:var(--muted);text-transform:uppercase">Caso</th>
+            <th style="text-align:left;padding:8px;font-size:11px;color:var(--muted);text-transform:uppercase">Usuario</th>
+            <th style="text-align:left;padding:8px;font-size:11px;color:var(--muted);text-transform:uppercase">Tipo</th>
+            <th style="text-align:right;padding:8px;font-size:11px;color:var(--muted);text-transform:uppercase">Precio</th>
+          </tr></thead>
+          <tbody>
+          ${events.map(e => `<tr style="border-bottom:0.5px solid var(--cream-dark)">
+            <td style="padding:8px;font-size:12px;color:var(--muted)">${new Date(e.billed_at).toLocaleDateString('es')}</td>
+            <td style="padding:8px;font-size:13px">${escHtml(e.case_name||'Sin nombre')}</td>
+            <td style="padding:8px;font-size:12px;color:var(--muted)">${escHtml(e.user_name||'')}</td>
+            <td style="padding:8px"><span style="background:${e.event_type==='case'?'rgba(4,44,83,0.1)':'rgba(200,169,110,0.15)'};color:${e.event_type==='case'?'var(--navy)':'#8a6a00'};padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">${e.event_type==='case'?'Caso':'Revisión'}</span></td>
+            <td style="padding:8px;text-align:right;font-weight:700;color:var(--navy)">$${parseFloat(e.price).toFixed(2)}</td>
+          </tr>`).join('')}
+          </tbody>
+        </table>`}
+
+      <h4 style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.4px">Historial de Períodos Cerrados</h4>
+      ${periods.filter(p => !p.is_open).length === 0
+        ? '<p style="color:var(--muted);font-size:13px">Sin períodos cerrados aún.</p>'
+        : `<table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead><tr style="border-bottom:2px solid var(--border)">
+            <th style="text-align:left;padding:8px;font-size:11px;color:var(--muted);text-transform:uppercase">Desde</th>
+            <th style="text-align:left;padding:8px;font-size:11px;color:var(--muted);text-transform:uppercase">Hasta</th>
+            <th style="text-align:center;padding:8px;font-size:11px;color:var(--muted);text-transform:uppercase">Casos</th>
+            <th style="text-align:center;padding:8px;font-size:11px;color:var(--muted);text-transform:uppercase">Revisiones</th>
+            <th style="text-align:right;padding:8px;font-size:11px;color:var(--muted);text-transform:uppercase">Total</th>
+          </tr></thead>
+          <tbody>
+          ${periods.filter(p=>!p.is_open).map(p=>`<tr style="border-bottom:0.5px solid var(--cream-dark)">
+            <td style="padding:8px;font-size:12px">${new Date(p.started_at).toLocaleDateString('es')}</td>
+            <td style="padding:8px;font-size:12px">${p.closed_at ? new Date(p.closed_at).toLocaleDateString('es') : '—'}</td>
+            <td style="padding:8px;text-align:center">${p.cases_count||p.total_cases||0}</td>
+            <td style="padding:8px;text-align:center">${p.reviews_count||p.total_reviews||0}</td>
+            <td style="padding:8px;text-align:right;font-weight:700;color:var(--navy)">$${parseFloat(p.total_amount||0).toFixed(2)}</td>
+          </tr>`).join('')}
+          </tbody>
+        </table>`}
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+async function closePeriod(firmId, firmName) {
+  if (!confirm(`¿Cobrar y cerrar el período actual de "${firmName}"?\n\nEl contador se reiniciará en 0. El historial se guarda permanentemente.`)) return;
+  const res = await authFetch(`/api/billing/close/${firmId}`, { method: 'POST' });
+  if (res.ok) {
+    showAlert(`✅ Período de ${firmName} cerrado. El contador está en 0.`, 'info');
+    loadBilling();
+  } else {
+    alert('Error al cerrar el período');
+  }
+}
+
+async function editPrices(firmId, firmName, currentCase, currentReview) {
+  const newCase = prompt(`Precio por CASO para "${firmName}" (actual: $${currentCase}):`, currentCase);
+  if (!newCase) return;
+  const newReview = prompt(`Precio por REVISIÓN para "${firmName}" (actual: $${currentReview}):`, currentReview);
+  if (!newReview) return;
+  const res = await authFetch(`/api/billing/prices/${firmId}`, {
+    method: 'POST',
+    body: JSON.stringify({ priceCase: parseFloat(newCase), priceReview: parseFloat(newReview) })
+  });
+  if (res.ok) {
+    showAlert(`✅ Precios actualizados para ${firmName}`, 'info');
+    loadBilling();
+  }
 }
 
 async function loadAdminDashboard() {
@@ -518,7 +675,7 @@ const SECTIONS = [
   },
   { id:'s2', title:'Cónyuge e hijos', color:'#EAF3DE', numColor:'#173404',
     questions:[
-      { id:'spouseName', q:'¿Está casado/a o tiene pareja? ¿Nombre completo?', critical:false, placeholder:'Nombre completo del cónyuge o N/A' },
+      { id:'spouseName', q:'¿Nombre completo del cónyuge o pareja?', critical:false, placeholder:'Nombre completo del cónyuge o pareja' },
       { id:'spouseDob', q:'¿Fecha de nacimiento del cónyuge y lugar?', critical:false, placeholder:'Fecha y lugar de nacimiento' },
       { id:'spouseAsylum', q:'¿El cónyuge también solicita asilo como derivado? ¿A-Number?', critical:false, placeholder:'Sí/No y A-Number si aplica' },
       { id:'children', q:'¿Tienen hijos? Por cada uno: nombre completo, fecha de nacimiento, lugar de nacimiento, dónde vive ahora.', critical:false, placeholder:'Ej: Juan López, 20 feb 2010, La Habana Cuba, vive en Tampa FL' },
@@ -614,6 +771,7 @@ let _reviewCaseName = '';
 let _reviewAnalysis = null;     // parsed JSON result from reviewDeclaration
 let _reviewAnswers = {};        // { questionIndex: answerText }
 let _reviewResultsHTML = '';    // cached HTML of results panel
+let _reviewBillingRecorded = false;
 
 // ─── COUNTRY GROUP ─────────────────────────────────────────────────────────────
 function getCountryGroup() {
@@ -739,6 +897,10 @@ regime: {
   whyNoMove:     ['¿Intentó mudarse a otra provincia?','¿La Seguridad del Estado tiene alcance nacional — lo encontraron?','¿Su "expediente" político lo seguía a donde iba?'],
   searchedAfter: ['¿Fue la Seguridad del Estado, la policía o el CDR quien fue a buscarle?','¿Cuándo exactamente — mes y año?','¿Qué dijeron textualmente — "gusana", "contrarrevolucionaria", "tiene asuntos pendientes"?'],
   whatWouldHappen: ['¿Lo arrestarían al llegar al aeropuerto por salir sin permiso oficial?','¿Hay cargos penales abiertos contra usted en Cuba/Venezuela/Nicaragua?','¿Conoce personas deportadas que fueron arrestadas al llegar — qué les pasó?'],
+  departureDate: ['¿Tenía pasaporte válido o usó otro documento para salir?','¿Salió solo o con otras personas?','¿Lo interrogaron en el aeropuerto o punto de salida?','¿Usó algún pretexto para salir — viaje de trabajo, turismo?'],
+  route:        ['¿Cuánto tiempo estuvo exactamente en cada país?','¿Usó servicios de coyote o guía para algún tramo?','¿Tuvo algún incidente en algún país de tránsito — robo, extorsión, detención?'],
+  travelIncidents: ['¿En qué país o lugar exacto ocurrió el incidente?','¿Quiénes estuvieron involucrados — autoridades, criminales, coyotes?','¿Hubo consecuencias físicas o económicas?','¿Hay alguna evidencia de ese incidente?'],
+  whyNoAsylumTransit: ['¿En cuáles países específicamente pensó en pedir asilo pero no lo hizo?','¿Qué vio o vivió en esos países que le indicó que no era seguro?','¿Tenía familia o conocidos en alguno de esos países?','¿Cuándo decidió que su destino final sería EE.UU.?'],
   // Event fields
   fecha:        ['¿Recuerda el día exacto o solo el mes y año?','¿Fue durante una fecha política importante — 1ero de mayo, aniversario de la revolución?','¿Hay algo que lo ayude a ubicar la fecha con precisión?'],
   lugar:        ['¿Fue en una estación de policía, sede del partido, su casa o la calle?','¿Cuál es el nombre oficial del lugar o la dirección exacta?','¿Hay personas del barrio que puedan confirmar que usted estuvo ahí?'],
@@ -776,6 +938,10 @@ gangs: {
   whyNoMove:     ['¿La pandilla tiene presencia en todo el país o solo en su zona?','¿Intentó mudarse — lo encontraron?','¿La pandilla tiene "informantes" en otras ciudades?'],
   searchedAfter: ['¿La pandilla fue a buscarle a casa de familiares?','¿Cuándo — mes y año?','¿Qué dijeron exactamente a sus familiares?'],
   whatWouldHappen: ['¿Lo matarían por haber escapado sin pagar o sin unirse?','¿Conoce personas que regresaron y fueron asesinadas o desaparecidas?','¿La pandilla dejó algún mensaje diciendo lo que le harían si regresaba?'],
+  departureDate: ['¿Tenía pasaporte o usó documento de identidad para salir?','¿Salió solo o con familia?','¿La pandilla sabía que se estaba yendo?','¿Tuvo que salir de noche o de forma clandestina?'],
+  route:        ['¿Cuánto tiempo estuvo en cada país de tránsito?','¿Usó coyote o guía — cuánto pagó?','¿Tuvo problemas con autoridades o criminales en el camino?'],
+  travelIncidents: ['¿En qué país o lugar exacto ocurrió?','¿Fueron autoridades, criminales o coyotes?','¿Hubo consecuencias físicas — golpes, robo, agresión sexual?','¿Hay evidencia — reporte médico, fotos?'],
+  whyNoAsylumTransit: ['¿Intentó pedir información sobre asilo en algún país de tránsito?','¿Qué condiciones vio que le indicaron que no era seguro quedarse?','¿Tuvo algún incidente en tránsito que confirmó esa decisión?','¿Por qué EE.UU. específicamente era su destino?'],
   fecha:        ['¿Recuerda el día exacto o solo el mes y año?','¿Fue de día o de noche — la pandilla opera diferente según el horario?'],
   lugar:        ['¿En qué colonia, barrio o municipio ocurrió?','¿Era zona controlada por esa pandilla?','¿Cuántas cuadras de su casa quedaba?'],
   quien:        ['¿Era MS-13, Barrio 18 u otra pandilla — cómo los identificó?','¿Tenían tatuajes visibles o señas características?','¿Cuántos eran y portaban armas?','¿Conocía alguno de antes?'],
@@ -808,6 +974,10 @@ colombia: {
   whyNoMove:     ['¿El grupo armado tiene presencia nacional — lo encontrarían en otra ciudad?','¿Intentó desplazarse — lo encontraron o tuvo los mismos problemas?'],
   searchedAfter: ['¿El grupo armado fue a preguntar por el cliente a casa de familiares?','¿Cuándo — mes y año?','¿Qué dijeron exactamente?'],
   whatWouldHappen: ['¿Lo matarían por haberse negado a colaborar o por haber escapado?','¿Conoce líderes sociales o personas en situación similar que fueron asesinadas?'],
+  departureDate: ['¿Tenía pasaporte válido?','¿Salió solo o con familia?','¿El grupo armado sabía que se estaba yendo?','¿Tuvo que desplazarse primero a otra ciudad antes de salir del país?'],
+  route:        ['¿Cuánto tiempo estuvo en cada país de tránsito?','¿Usó coyote o guía?','¿Tuvo algún incidente en el camino?'],
+  travelIncidents: ['¿En qué país ocurrió?','¿Fueron autoridades, criminales o grupos armados?','¿Hubo consecuencias físicas o pérdida de dinero?'],
+  whyNoAsylumTransit: ['¿Intentó buscar protección en Ecuador o Perú?','¿Qué condiciones vio en esos países?','¿Tenía familia o contactos en algún país de tránsito?','¿Por qué EE.UU. era su destino final?'],
   fecha:        ['¿Recuerda el día exacto o solo el mes y año?','¿Fue durante un paro armado o en una fecha significativa para el grupo?'],
   lugar:        ['¿En qué vereda, corregimiento o municipio ocurrió?','¿Era zona con presencia permanente de ese grupo?'],
   quien:        ['¿Era FARC, disidencias, ELN, paramilitares o Clan del Golfo?','¿Vestían prendas militares o ropa civil?','¿Portaban armas de qué tipo?','¿Cuántos eran?'],
@@ -841,6 +1011,11 @@ haiti: {
   nexo:         ['¿Le dijeron por qué lo elegían a usted — su negocio, su familia, su posición en la comunidad?'],
   testigos:     ['¿Había vecinos o familiares presentes?','¿Le contó a alguien ese mismo día?'],
   consecuencias:['¿Tuvo que abandonar su casa o negocio?','¿Su familia también tuvo que huir?'],
+  whatWouldHappen: ['¿Lo secuestrarían o matarían al regresar?','¿Conoce personas que regresaron y sufrieron consecuencias?'],
+  departureDate: ['¿Tenía pasaporte haitiano válido?','¿Salió por el aeropuerto o por frontera terrestre?','¿Salió solo o con familia?'],
+  route:        ['¿Cuánto tiempo en cada país de tránsito?','¿Usó coyote?','¿Tuvo incidentes en el camino?'],
+  travelIncidents: ['¿En qué país ocurrió?','¿Fueron autoridades o criminales?','¿Hubo consecuencias físicas o pérdida de dinero?'],
+  whyNoAsylumTransit: ['¿Intentó pedir protección en Brasil, Chile o algún otro país?','¿Qué condiciones vio que le indicaron que no era seguro?','¿Por qué EE.UU. era su destino final?'],
 },
 
 // ── OTROS PAÍSES ─────────────────────────────────────────────────────────────
@@ -881,6 +1056,11 @@ other: {
   nexo:         ['¿Le dijeron explícitamente por qué lo elegían a usted?','¿Había algo que lo distinguía de otras personas presentes?'],
   testigos:     ['¿Había personas presentes?','¿Le contó a alguien inmediatamente después?'],
   consecuencias:['¿Tuvo que cambiar su rutina?','¿Afectó su trabajo o su familia?','¿Desarrolló problemas de salud emocional?'],
+  whatWouldHappen: ['¿Qué le pasaría específicamente al llegar?','¿Conoce personas que regresaron y sufrieron consecuencias?','¿Hay órdenes de arresto abiertas?'],
+  departureDate: ['¿Tenía pasaporte válido o usó otro documento?','¿Salió solo o con otras personas?','¿Lo interrogaron al salir?'],
+  route:        ['¿Cuánto tiempo estuvo en cada país?','¿Usó coyote o guía?','¿Tuvo incidentes en algún país de tránsito?'],
+  travelIncidents: ['¿En qué país exactamente ocurrió?','¿Quiénes estuvieron involucrados?','¿Hubo consecuencias físicas o económicas?'],
+  whyNoAsylumTransit: ['¿Intentó buscar información sobre asilo en algún país de tránsito?','¿Qué vio o vivió que le indicó que no era seguro quedarse?','¿Por qué EE.UU. era su destino final?'],
 },
 
 }; // end FOLLOWUP_BY_GROUP
@@ -1723,6 +1903,31 @@ ${transcript.substring(0, 3000)}${transcript.length > 3000 ? '\n[... continúa .
 
 Redacta una declaración formal I-589 en español, primera persona, párrafos numerados (1. 2. 3...). Sin Markdown, sin asteriscos, sin encabezados. 60-90 párrafos. Si falta información crítica, escribe [PENDIENTE: pregunta específica].
 
+PRINCIPIO FUNDAMENTAL — NEXO CAUSAL TEJIDO A LO LARGO DE TODA LA NARRATIVA:
+Esta es la instrucción más importante de todas. CADA evento de persecución, sin importar cómo lo describió el cliente, debe estar conectado al motivo protegido de asilo (opinión política, religión, familia, raza, grupo social particular). No hay eventos aislados — todo tiene un por qué.
+
+Aplica esta regla a TODOS los tipos de persecución:
+
+CRIMEN ORDINARIO / EXTORSIÓN: "aunque su motivación aparente era económica, me eligieron a mí específicamente porque [soy opositora al régimen / soy familiar de X / mi negativa a unirme al grupo me hizo vulnerable]"
+
+ACOSO POLICIAL: "ese acoso fue posible y quedó impune porque yo era conocida como [opositora / persona sin protección del partido / familiar de disidente] y el sistema protege a sus agentes cuando actúan contra personas con mi perfil"
+
+PÉRDIDA DE EMPLEO: "no fue un despido ordinario — me despidieron porque mi expediente político / mi negativa a afiliarme / mi relación con [familiar] me marcó como persona no deseada por el régimen"
+
+DISCRIMINACIÓN ACADÉMICA: "la expulsión no fue disciplinaria — fue un castigo por no someterme a las exigencias ideológicas del sistema"
+
+AMENAZAS DE PANDILLAS: "me eligieron a mí porque [soy familiar de quien se resistió / mi negativa a pagar fue vista como desafío a su autoridad / reporté sus actividades a la policía]"
+
+RECLUTAMIENTO FORZADO: "rechazarlos fue un acto de oposición a su control territorial — en mi comunidad, negarse equivale a declararse enemigo"
+
+VIGILANCIA / SEGUIMIENTO: "fui vigilado porque [mis actividades / mis relaciones / mi historial] me hacían un objetivo de interés para [el régimen / el grupo]"
+
+DESPLAZAMIENTO FORZADO: "tuve que huir porque permanecer significaba seguir siendo un blanco por razón de [mi motivo protegido]"
+
+REPRESALIAS CONTRA FAMILIARES: "atacaron a mi familia como forma de presionarme a mí — me eligieron como objetivo indirecto por mi [opinión política / activismo / resistencia]"
+
+Regla de oro: Si el cliente no explicó el nexo, el modelo debe inferirlo de manera razonable usando el contexto del caso, las palabras del persecutor, el perfil del cliente y el país. Si no hay ninguna base para inferirlo, marcar [PENDIENTE: ¿por qué cree que lo eligieron a usted específicamente?]
+
 ORDEN OBLIGATORIO DE LA NARRATIVA:
 1. Datos personales y familia nuclear
 2. Familia extensa y antecedentes de persecución familiar
@@ -1904,10 +2109,12 @@ Lista numerada de todas las preguntas [PENDIENTE].`;
     const newsItems = await fetchNews(country, groundEN, dateFrom, dateTo, currentYear, get('persecutors'));
 
     generatedData = { declarationText, newsItems, name: get('name'), anumber: get('anumber'), dateFrom, dateTo, country, missingQuestions };
-    _analysisCache = null; // clear cache so analysis runs fresh for new declaration
+    _analysisCache = null;
     _analysisCachedHTML = '';
-    _translationCache = null; // clear translation cache for new declaration
+    _translationCache = null;
     saveCurrentCase(true);
+    // Record billing event — case generated
+    recordBillingEvent('case', currentCaseId, get('name') || 'Sin nombre');
     renderOutput(generatedData);
     if (missingQuestions.length > 0) showMissingBanner(missingQuestions.length);
 
@@ -2305,6 +2512,7 @@ function clearReview() {
   _reviewAnalysis = null;
   _reviewAnswers = {};
   _reviewResultsHTML = '';
+  _reviewBillingRecorded = false;
   renderReview();
 }
 
@@ -2331,6 +2539,8 @@ async function processPdfFile(file) {
       const nameInput = document.getElementById('reviewCaseName');
       if (nameInput) nameInput.value = _reviewCaseName;
     }
+    // Record billing event — review uploaded
+    recordBillingEvent('review', 'review-' + Date.now(), _reviewCaseName || file.name);
   } catch(err) { dz.innerHTML = `<div style="color:var(--red);font-size:13px">⚠ Error: ${escHtml(err.message)}</div>`; }
 }
 
@@ -2340,6 +2550,11 @@ async function reviewDeclaration() {
   const results = document.getElementById('reviewResults');
   const btn = document.getElementById('btnReview');
   if (!_reviewText || _reviewText.length < 100) { results.innerHTML = '<div class="alert error">Pegue el texto primero.</div>'; return; }
+  // Record billing for manual text paste (only if no PDF was already uploaded)
+  if (!_reviewBillingRecorded) {
+    _reviewBillingRecorded = true;
+    recordBillingEvent('review', 'review-' + Date.now(), _reviewCaseName || 'Declaración revisada');
+  }
   btn.disabled=true; btn.textContent='⏳ Analizando...';
   results.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Revisando...</p></div>';
   const reviewPrompt = `Eres un abogado de inmigración con 20 años de experiencia en casos de asilo I-589 ante cortes de EOIR.
@@ -2633,6 +2848,17 @@ async function improveDeclaration() {
   const improvePrompt = `Eres un paralegal experto en asilo I-589 con 20 años de experiencia ante cortes de inmigración de EEUU. Mejora y reescribe esta declaración aplicando los estándares reales del BIA (Board of Immigration Appeals).
 
 REGLA ABSOLUTA: NO inventes información nueva. Solo usa los hechos que están en la declaración original. Si falta algo crítico, márcalo como [PENDIENTE: pregunta específica].
+
+PRINCIPIO FUNDAMENTAL — NEXO CAUSAL:
+CADA evento debe estar conectado al motivo protegido. Aplica a todos los tipos:
+- Crimen/extorsión: "me eligieron a mí por [motivo protegido]"
+- Acoso policial: "fue posible porque mi perfil político me dejó desprotegida"
+- Pérdida de empleo: "no fue ordinario — fue castigo por [motivo protegido]"
+- Pandillas: "me eligieron por ser familiar de / por haberme negado a / por haber reportado"
+- Represalias a familia: "atacaron a mi familia para presionarme a mí"
+- Reclutamiento rechazado: "negarme fue un acto de oposición a su control"
+- Vigilancia: "fui vigilado por mi perfil de [motivo protegido]"
+Las palabras textuales del persecutor son el nexo más poderoso — inclúyelas siempre. Si no hay base para inferir el nexo, marcar [PENDIENTE: ¿por qué cree que lo eligieron a usted?]
 
 MEJORAS QUE DEBES APLICAR:
 
