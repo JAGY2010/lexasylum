@@ -681,6 +681,8 @@ pool.query(`
 
 app.post('/api/claude', requireAuth, async (req, res) => {
   if (!ANTHROPIC_API_KEY) return res.status(500).json({ error: { message: 'ANTHROPIC_API_KEY no configurada.' } });
+  req.setTimeout(300000);
+  res.setTimeout(300000);
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -704,6 +706,9 @@ app.post('/api/claude-stream', requireAuth, async (req, res) => {
     res.write(`data: ${JSON.stringify({ error: 'ANTHROPIC_API_KEY no configurada.' })}\n\n`);
     return res.end();
   }
+  // Allow up to 5 minutes for streaming responses (web search + opus can be slow)
+  req.setTimeout(300000);
+  res.setTimeout(300000);
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
