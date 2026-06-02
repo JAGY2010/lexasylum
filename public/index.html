@@ -2359,122 +2359,110 @@ function getDateRange() {
 async function fetchNews(country, groundEN, dateFrom, dateTo, currentYear, persecutor, attempt = 1, declarationText = '') {
   const MAX_ATTEMPTS = 3;
   try {
-    const prevYear = currentYear - 1;
-    // Use declaration text if available (much richer context), otherwise fallback to raw answers
-    let caseContext;
+    // STEP 1: Generate a short summary (5-10 lines) from the declaration to use as search context
+    // This avoids passing the full declaration (which is expensive and slow with web_search)
+    let summary = '';
     if (declarationText && declarationText.length > 500) {
-      // Truncate to first 12,000 chars to keep token usage reasonable
-      caseContext = declarationText.slice(0, 12000);
-    } else {
-      // Fallback: build from raw answers
-      caseContext = [
+      try {
+        const summaryPrompt = `Resume en 5-8 líneas los hechos clave de esta declaración de asilo para buscar artículos de apoyo. Incluye: organizaciones/perseguidores específicos por nombre, eventos clave (con fechas si las hay), motivo de persecución, y lugares.
+
+Declaración:
+"""
+${declarationText.slice(0, 8000)}
+"""
+
+Devuelve SOLO el resumen, sin introducción ni explicación. Máximo 600 caracteres.`;
+
+        const sumResp = await fetch('/api/claude', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-session-token': _authToken || '' },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-6',
+            max_tokens: 400,
+            messages: [{ role: 'user', content: summaryPrompt }]
+          })
+        });
+        const sumData = await sumResp.json();
+        if (sumData.content) {
+          summary = sumData.content.map(i => i.type === 'text' ? i.text : '').join('').trim().slice(0, 600);
+        }
+      } catch(e) { console.warn('Summary failed, using fallback'); }
+    }
+
+    // Fallback to raw answers if no summary or no declaration
+    if (!summary) {
+      summary = [
         answers['persecutors']?.value,
         answers['trigger']?.value,
         answers['organizations']?.value,
         answers['protests']?.value,
-      ].filter(Boolean).join(' | ').slice(0, 500) || 'political persecution and human rights violations';
+      ].filter(Boolean).join(' | ').slice(0, 400) || 'political persecution and human rights violations';
     }
 
-    const newsPrompt = `You are an immigration attorney conducting legal research for an asylum case.
+    // STEP 2: Search articles using the compact summary (much faster, much cheaper)
+    const newsPrompt = `You are a legal research assistant for an immigration law firm.
+Search the web and find 10-12 real published news articles in ENGLISH about ${country} relevant to asylum based on: ${groundEN}.
 
-CLIENT: Native of ${country}. Asylum ground: ${groundEN}.
+CASE CONTEXT (for finding relevant articles):
+${summary}
 
-ASYLUM DECLARATION (use this to identify the SPECIFIC facts, organizations, persecutors, dates, locations, and events you need to corroborate with country conditions evidence):
-"""
-${caseContext}
-"""
+PERIOD 1 — HISTORICAL (${dateFrom}-${dateTo}): Find 5-6 articles documenting conditions during the client's events.
+PERIOD 2 — CURRENT (${currentYear-1}-${currentYear}): Find 4-6 RECENT articles showing the situation has NOT improved.
 
-RESEARCH TASK — Search in this priority order:
+Priority sources: OSAC (osac.gov), U.S. State Department Human Rights Reports, Human Rights Watch, Amnesty International, Freedom House, then major news (CNN, Reuters, BBC, AP).
 
-1. OSAC (osac.gov) — Search for "${country} crime and safety report" and "${country} security report"
-2. U.S. State Department — Human Rights Reports for ${country} (current year and ${prevYear})
-3. Human Rights Watch (hrw.org) — Reports on ${country} ${prevYear}-${currentYear}
-4. Amnesty International — Reports on ${country}
-5. Freedom House — Freedom in the World report for ${country}
-6. Recent news — CNN, Reuters, BBC, AP about ${country} human rights ${prevYear}-${currentYear}
+Focus on: political repression, human rights abuses, arbitrary detention, and incidents directly relevant to the case context above.
 
-WHAT TO FIND — Use the declaration above to guide your searches:
-- Articles about the SPECIFIC organizations/persecutors mentioned in the declaration
-- Articles about the SPECIFIC events, protests, or incidents referenced
-- Current country conditions (${prevYear}-${currentYear}) that show the situation has NOT improved
-- Historical conditions (${dateFrom}-${dateTo}) that contextualize when the client's events occurred
-- Evidence that supports the SPECIFIC legal arguments in this declaration
+Return ONLY a JSON array, no markdown:
+[{"title":"...","source":"...","date":"...","url":"https://...","summary":"Attorney-style summary explaining how this evidence supports the asylum claim","relevance":"Specific legal element supported","period":"historical or current"}]`;
 
-SELECTION RULES:
-- Choose between 6 and 16 articles total — you decide the exact number based on what's most useful
-- Each article must directly relate to FACTS in the declaration above, not generic country information
-- Prioritize: (1) articles matching specific events/organizations in the declaration, (2) OSAC reports, (3) State Dept reports, (4) recent events
-- Do NOT include generic articles about crime or poverty unless directly relevant to the asylum ground
-
-For each article write the summary AS AN IMMIGRATION ATTORNEY would write it for a court brief — explain how this evidence corroborates the SPECIFIC facts in the declaration, what legal standard it helps meet (well-founded fear, government unable/unwilling to protect, internal relocation not feasible), and why it is relevant to THIS specific client.
-
-CRITICAL: You MUST return at least 6 articles. Return ONLY a valid JSON array, no markdown, no explanation:
-[
-  {
-    "title": "Exact article title",
-    "source": "Publication name (OSAC / State Dept / HRW / etc.)",
-    "date": "Month Year",
-    "url": "https://real-url.com",
-    "summary": "Attorney-style summary: what this article documents and how it corroborates specific facts in this declaration. 3-4 sentences maximum.",
-    "relevance": "Specific legal relevance: which element of the asylum claim this evidence supports (nexus, well-founded fear, government protection failure, etc.)",
-    "period": "historical or current"
-  }
-]`;
-
-    const text = await callStreaming(
-      'claude-sonnet-4-6',
-      4000,
-      [{ role: 'user', content: newsPrompt }],
-      null,
-      true // enable web_search tool
-    );
-
-    if (!text || text.length < 20) {
+    const resp = await fetch('/api/claude', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-session-token': _authToken || '' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 3000,
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+        messages: [{ role: 'user', content: newsPrompt }]
+      })
+    });
+    const d = await resp.json();
+    if (d.error) {
       if (attempt < MAX_ATTEMPTS) {
-        console.warn(`fetchNews: empty response, retry ${attempt}/${MAX_ATTEMPTS}`);
-        await new Promise(r => setTimeout(r, 3000));
+        await new Promise(r => setTimeout(r, 2000));
         return fetchNews(country, groundEN, dateFrom, dateTo, currentYear, persecutor, attempt + 1, declarationText);
       }
       return [];
     }
-
-    // Try multiple JSON parsing strategies
-    let items = null;
+    const text = (d.content || []).map(i => i.type === 'text' ? i.text : '').join('').trim();
     const match = text.match(/\[[\s\S]*\]/);
-    if (match) {
-      try { items = JSON.parse(match[0]); } catch {}
-      if (!items) {
-        // Try cleaning markdown fences
-        try { items = JSON.parse(match[0].replace(/```json|```/g,'').trim()); } catch {}
-      }
-      if (!items) {
-        // Try removing control characters
-        try {
-          const cleaned = match[0].replace(/[\x00-\x1F\x7F]/g, ' ');
-          items = JSON.parse(cleaned);
-        } catch {}
-      }
-    }
-
-    if (!items || !Array.isArray(items) || items.length === 0) {
+    if (!match) {
       if (attempt < MAX_ATTEMPTS) {
-        console.warn(`fetchNews: parse failed, retry ${attempt}/${MAX_ATTEMPTS}`);
-        await new Promise(r => setTimeout(r, 3000));
+        await new Promise(r => setTimeout(r, 2000));
         return fetchNews(country, groundEN, dateFrom, dateTo, currentYear, persecutor, attempt + 1, declarationText);
       }
       return [];
     }
-
-    return items.slice(0, 16);
+    try {
+      const items = JSON.parse(match[0]);
+      return Array.isArray(items) ? items.slice(0, 16) : [];
+    } catch {
+      if (attempt < MAX_ATTEMPTS) {
+        await new Promise(r => setTimeout(r, 2000));
+        return fetchNews(country, groundEN, dateFrom, dateTo, currentYear, persecutor, attempt + 1, declarationText);
+      }
+      return [];
+    }
   } catch(e) {
     console.warn('fetchNews error:', e.message);
     if (attempt < MAX_ATTEMPTS) {
-      await new Promise(r => setTimeout(r, 3000));
+      await new Promise(r => setTimeout(r, 2000));
       return fetchNews(country, groundEN, dateFrom, dateTo, currentYear, persecutor, attempt + 1, declarationText);
     }
     return [];
   }
 }
+
 
 // Manual retry for articles only — doesn't regenerate the declaration
 async function retryArticlesOnly() {
