@@ -145,6 +145,37 @@ async function initDB() {
         saved_at TIMESTAMPTZ DEFAULT NOW(),
         updated_at TIMESTAMPTZ DEFAULT NOW()
       );
+
+      CREATE TABLE IF NOT EXISTS firm_billing (
+        id SERIAL PRIMARY KEY,
+        firm_id INTEGER REFERENCES firms(id),
+        price_case NUMERIC(10,2) DEFAULT 400.00,
+        price_review NUMERIC(10,2) DEFAULT 300.00,
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS billing_events (
+        id SERIAL PRIMARY KEY,
+        firm_id INTEGER REFERENCES firms(id),
+        user_id INTEGER REFERENCES users(id),
+        case_id TEXT,
+        case_name TEXT,
+        event_type TEXT NOT NULL,
+        price NUMERIC(10,2) NOT NULL,
+        billed_at TIMESTAMPTZ DEFAULT NOW(),
+        period_id INTEGER
+      );
+
+      CREATE TABLE IF NOT EXISTS billing_periods (
+        id SERIAL PRIMARY KEY,
+        firm_id INTEGER REFERENCES firms(id),
+        started_at TIMESTAMPTZ DEFAULT NOW(),
+        closed_at TIMESTAMPTZ,
+        total_cases INTEGER DEFAULT 0,
+        total_reviews INTEGER DEFAULT 0,
+        total_amount NUMERIC(10,2) DEFAULT 0,
+        is_open BOOLEAN DEFAULT true
+      );
     `);
 
     // Seed superadmin if not exists
@@ -489,7 +520,165 @@ app.get('/api/admin/stats', requireSuperAdmin, async (req, res) => {
   }
 });
 
-// ── ANTHROPIC PROXY (requires auth) ─────────────────────────────────────────
+// ── BILLING ENDPOINTS ────────────────────────────────────────────────────────
+
+// Get billing summary for all firms (superadmin)
+app.get('/api/billing/summary', requireSuperAdmin, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        f.id, f.name, f.code,
+        COALESCE(fb.price_case, 400) as price_case,
+        COALESCE(fb.price_review, 300) as price_review,
+        COALESCE(bp.id, NULL) as period_id,
+        COALESCE(bp.started_at, NOW()) as period_started,
+        COUNT(CASE WHEN be.event_type = 'case' AND be.period_id = bp.id THEN 1 END) as current_cases,
+        COUNT(CASE WHEN be.event_type = 'review' AND be.period_id = bp.id THEN 1 END) as current_reviews,
+        COALESCE(SUM(CASE WHEN be.period_id = bp.id THEN be.price ELSE 0 END), 0) as current_total
+      FROM firms f
+      LEFT JOIN firm_billing fb ON fb.firm_id = f.id
+      LEFT JOIN billing_periods bp ON bp.firm_id = f.id AND bp.is_open = true
+      LEFT JOIN billing_events be ON be.firm_id = f.id
+      WHERE f.active = true AND f.code != 'LEXADMIN'
+      GROUP BY f.id, f.name, f.code, fb.price_case, fb.price_review, bp.id, bp.started_at
+      ORDER BY f.name
+    `);
+    res.json(result.rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Get billing detail for a firm
+app.get('/api/billing/firm/:id', requireSuperAdmin, async (req, res) => {
+  try {
+    const firmId = req.params.id;
+    // Current period events
+    const events = await pool.query(`
+      SELECT be.*, u.name as user_name, bp.started_at as period_started
+      FROM billing_events be
+      JOIN users u ON u.id = be.user_id
+      LEFT JOIN billing_periods bp ON bp.id = be.period_id
+      WHERE be.firm_id = $1
+      ORDER BY be.billed_at DESC
+      LIMIT 200
+    `, [firmId]);
+    // Historical periods
+    const periods = await pool.query(`
+      SELECT bp.*,
+        COUNT(CASE WHEN be.event_type='case' THEN 1 END) as cases_count,
+        COUNT(CASE WHEN be.event_type='review' THEN 1 END) as reviews_count
+      FROM billing_periods bp
+      LEFT JOIN billing_events be ON be.period_id = bp.id
+      WHERE bp.firm_id = $1
+      GROUP BY bp.id
+      ORDER BY bp.started_at DESC
+    `, [firmId]);
+    res.json({ events: events.rows, periods: periods.rows });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Update firm prices
+app.post('/api/billing/prices/:firmId', requireSuperAdmin, async (req, res) => {
+  const { priceCase, priceReview } = req.body;
+  try {
+    await pool.query(`
+      INSERT INTO firm_billing (firm_id, price_case, price_review)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (firm_id) DO UPDATE SET
+        price_case = EXCLUDED.price_case,
+        price_review = EXCLUDED.price_review,
+        updated_at = NOW()
+    `, [req.params.firmId, priceCase, priceReview]);
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Record a billing event (called from frontend)
+app.post('/api/billing/event', requireAuth, async (req, res) => {
+  const { eventType, caseId, caseName } = req.body;
+  if (!['case','review'].includes(eventType)) return res.status(400).json({ error: 'Invalid event type' });
+  // Don't bill superadmin firm
+  if (req.session.role === 'superadmin') return res.json({ ok: true, skipped: true });
+  try {
+    // Check if this case already has a billing event to avoid double-counting
+    if (caseId) {
+      const existing = await pool.query(
+        'SELECT id FROM billing_events WHERE case_id = $1 AND firm_id = $2',
+        [String(caseId), req.session.firmId]
+      );
+      if (existing.rows.length > 0) return res.json({ ok: true, skipped: true });
+    }
+    // Get or create open period
+    let period = await pool.query(
+      'SELECT id FROM billing_periods WHERE firm_id = $1 AND is_open = true ORDER BY started_at DESC LIMIT 1',
+      [req.session.firmId]
+    );
+    let periodId;
+    if (period.rows.length === 0) {
+      const np = await pool.query(
+        'INSERT INTO billing_periods (firm_id) VALUES ($1) RETURNING id',
+        [req.session.firmId]
+      );
+      periodId = np.rows[0].id;
+    } else {
+      periodId = period.rows[0].id;
+    }
+    // Get price
+    const priceRow = await pool.query(
+      'SELECT price_case, price_review FROM firm_billing WHERE firm_id = $1',
+      [req.session.firmId]
+    );
+    const prices = priceRow.rows[0] || { price_case: 400, price_review: 300 };
+    const price = eventType === 'case' ? prices.price_case : prices.price_review;
+    // Insert event
+    await pool.query(
+      `INSERT INTO billing_events (firm_id, user_id, case_id, case_name, event_type, price, period_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [req.session.firmId, req.session.userId, caseId ? String(caseId) : null, caseName || '', eventType, price, periodId]
+    );
+    // Update period totals
+    await pool.query(`
+      UPDATE billing_periods SET
+        total_cases = total_cases + $1,
+        total_reviews = total_reviews + $2,
+        total_amount = total_amount + $3
+      WHERE id = $4
+    `, [
+      eventType === 'case' ? 1 : 0,
+      eventType === 'review' ? 1 : 0,
+      price,
+      periodId
+    ]);
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Close period (charge / cobrar)
+app.post('/api/billing/close/:firmId', requireSuperAdmin, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      UPDATE billing_periods SET is_open = false, closed_at = NOW()
+      WHERE firm_id = $1 AND is_open = true
+      RETURNING *
+    `, [req.params.firmId]);
+    // Create new open period
+    await pool.query(
+      'INSERT INTO billing_periods (firm_id) VALUES ($1)',
+      [req.params.firmId]
+    );
+    res.json({ ok: true, period: result.rows[0] });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Add unique constraint to firm_billing if not exists
+pool.query(`
+  DO $$ BEGIN
+    ALTER TABLE firm_billing ADD CONSTRAINT firm_billing_firm_id_unique UNIQUE (firm_id);
+  EXCEPTION WHEN duplicate_table THEN NULL;
+  WHEN duplicate_object THEN NULL;
+  END $$;
+`).catch(() => {});
+
+
 app.post('/api/claude', requireAuth, async (req, res) => {
   if (!ANTHROPIC_API_KEY) return res.status(500).json({ error: { message: 'ANTHROPIC_API_KEY no configurada.' } });
   try {
