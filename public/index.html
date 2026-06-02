@@ -2322,7 +2322,7 @@ Lista numerada de todas las preguntas [PENDIENTE].`;
     const groundEN = { political:'political persecution opinion', religion:'religious persecution', race:'racial ethnic persecution', social:'particular social group persecution', nationality:'nationality persecution' }[groundType] || 'persecution';
     const [dateFrom, dateTo] = getDateRange();
     const currentYear = new Date().getFullYear();
-    const newsItems = await fetchNews(country, groundEN, dateFrom, dateTo, currentYear, get('persecutors'));
+    const newsItems = await fetchNews(country, groundEN, dateFrom, dateTo, currentYear, get('persecutors'), 1, declarationText);
 
     generatedData = { declarationText, newsItems, name: get('name'), anumber: get('anumber'), dateFrom, dateTo, country, missingQuestions };
     _analysisCache = null;
@@ -2356,22 +2356,33 @@ function getDateRange() {
   return [minDate || String(new Date().getFullYear()-5), maxDate || String(new Date().getFullYear()-1)];
 }
 
-async function fetchNews(country, groundEN, dateFrom, dateTo, currentYear, persecutor, attempt = 1) {
+async function fetchNews(country, groundEN, dateFrom, dateTo, currentYear, persecutor, attempt = 1, declarationText = '') {
   const MAX_ATTEMPTS = 3;
   try {
     const prevYear = currentYear - 1;
-    // Build key events from answers to make articles relevant to the specific case
-    const keyEvents = [
-      answers['persecutors']?.value,
-      answers['trigger']?.value,
-      answers['organizations']?.value,
-      answers['protests']?.value,
-    ].filter(Boolean).join(' | ').slice(0, 300);
+    // Use declaration text if available (much richer context), otherwise fallback to raw answers
+    let caseContext;
+    if (declarationText && declarationText.length > 500) {
+      // Truncate to first 12,000 chars to keep token usage reasonable
+      caseContext = declarationText.slice(0, 12000);
+    } else {
+      // Fallback: build from raw answers
+      caseContext = [
+        answers['persecutors']?.value,
+        answers['trigger']?.value,
+        answers['organizations']?.value,
+        answers['protests']?.value,
+      ].filter(Boolean).join(' | ').slice(0, 500) || 'political persecution and human rights violations';
+    }
 
     const newsPrompt = `You are an immigration attorney conducting legal research for an asylum case.
 
 CLIENT: Native of ${country}. Asylum ground: ${groundEN}.
-KEY CASE FACTS: ${keyEvents || 'political persecution and human rights violations'}
+
+ASYLUM DECLARATION (use this to identify the SPECIFIC facts, organizations, persecutors, dates, locations, and events you need to corroborate with country conditions evidence):
+"""
+${caseContext}
+"""
 
 RESEARCH TASK — Search in this priority order:
 
@@ -2382,19 +2393,20 @@ RESEARCH TASK — Search in this priority order:
 5. Freedom House — Freedom in the World report for ${country}
 6. Recent news — CNN, Reuters, BBC, AP about ${country} human rights ${prevYear}-${currentYear}
 
-WHAT TO FIND:
-- Current country conditions (${prevYear}-${currentYear}): security situation, government repression, human rights
-- Historical conditions (${dateFrom}-${dateTo}): what was happening when the client's events occurred
-- Articles that DIRECTLY relate to the client's specific situation: ${groundEN}, ${keyEvents || 'political persecution'}
-- Evidence that the situation has NOT improved and return is dangerous
+WHAT TO FIND — Use the declaration above to guide your searches:
+- Articles about the SPECIFIC organizations/persecutors mentioned in the declaration
+- Articles about the SPECIFIC events, protests, or incidents referenced
+- Current country conditions (${prevYear}-${currentYear}) that show the situation has NOT improved
+- Historical conditions (${dateFrom}-${dateTo}) that contextualize when the client's events occurred
+- Evidence that supports the SPECIFIC legal arguments in this declaration
 
 SELECTION RULES:
 - Choose between 6 and 16 articles total — you decide the exact number based on what's most useful
-- Prioritize: (1) articles directly relevant to client's specific persecution type, (2) OSAC reports, (3) State Dept reports, (4) recent events
+- Each article must directly relate to FACTS in the declaration above, not generic country information
+- Prioritize: (1) articles matching specific events/organizations in the declaration, (2) OSAC reports, (3) State Dept reports, (4) recent events
 - Do NOT include generic articles about crime or poverty unless directly relevant to the asylum ground
-- If you find more than 16 relevant articles, select the most legally significant ones
 
-For each article write the summary AS AN IMMIGRATION ATTORNEY would write it for a court brief — explain how this evidence supports the asylum claim, what legal standard it helps meet (well-founded fear, government unable/unwilling to protect, internal relocation not feasible), and why it is relevant to THIS specific client.
+For each article write the summary AS AN IMMIGRATION ATTORNEY would write it for a court brief — explain how this evidence corroborates the SPECIFIC facts in the declaration, what legal standard it helps meet (well-founded fear, government unable/unwilling to protect, internal relocation not feasible), and why it is relevant to THIS specific client.
 
 CRITICAL: You MUST return at least 6 articles. Return ONLY a valid JSON array, no markdown, no explanation:
 [
@@ -2403,7 +2415,7 @@ CRITICAL: You MUST return at least 6 articles. Return ONLY a valid JSON array, n
     "source": "Publication name (OSAC / State Dept / HRW / etc.)",
     "date": "Month Year",
     "url": "https://real-url.com",
-    "summary": "Attorney-style summary: what this article documents and how it supports this specific asylum claim. 3-4 sentences maximum.",
+    "summary": "Attorney-style summary: what this article documents and how it corroborates specific facts in this declaration. 3-4 sentences maximum.",
     "relevance": "Specific legal relevance: which element of the asylum claim this evidence supports (nexus, well-founded fear, government protection failure, etc.)",
     "period": "historical or current"
   }
@@ -2421,7 +2433,7 @@ CRITICAL: You MUST return at least 6 articles. Return ONLY a valid JSON array, n
       if (attempt < MAX_ATTEMPTS) {
         console.warn(`fetchNews: empty response, retry ${attempt}/${MAX_ATTEMPTS}`);
         await new Promise(r => setTimeout(r, 3000));
-        return fetchNews(country, groundEN, dateFrom, dateTo, currentYear, persecutor, attempt + 1);
+        return fetchNews(country, groundEN, dateFrom, dateTo, currentYear, persecutor, attempt + 1, declarationText);
       }
       return [];
     }
@@ -2448,7 +2460,7 @@ CRITICAL: You MUST return at least 6 articles. Return ONLY a valid JSON array, n
       if (attempt < MAX_ATTEMPTS) {
         console.warn(`fetchNews: parse failed, retry ${attempt}/${MAX_ATTEMPTS}`);
         await new Promise(r => setTimeout(r, 3000));
-        return fetchNews(country, groundEN, dateFrom, dateTo, currentYear, persecutor, attempt + 1);
+        return fetchNews(country, groundEN, dateFrom, dateTo, currentYear, persecutor, attempt + 1, declarationText);
       }
       return [];
     }
@@ -2458,7 +2470,7 @@ CRITICAL: You MUST return at least 6 articles. Return ONLY a valid JSON array, n
     console.warn('fetchNews error:', e.message);
     if (attempt < MAX_ATTEMPTS) {
       await new Promise(r => setTimeout(r, 3000));
-      return fetchNews(country, groundEN, dateFrom, dateTo, currentYear, persecutor, attempt + 1);
+      return fetchNews(country, groundEN, dateFrom, dateTo, currentYear, persecutor, attempt + 1, declarationText);
     }
     return [];
   }
@@ -2477,7 +2489,7 @@ async function retryArticlesOnly() {
       : 'political persecution');
     const currentYear = new Date().getFullYear();
     const persecutor = answers['persecutors']?.value || '';
-    const newsItems = await fetchNews(country, groundEN, generatedData.dateFrom, generatedData.dateTo, currentYear, persecutor);
+    const newsItems = await fetchNews(country, groundEN, generatedData.dateFrom, generatedData.dateTo, currentYear, persecutor, 1, generatedData.declarationText || '');
     generatedData.newsItems = newsItems;
     saveCurrentCase(true);
     renderNews(generatedData);
@@ -2957,8 +2969,105 @@ ${_reviewText.substring(0, 60000)}`;
     results.innerHTML = html;
     _reviewResultsHTML = html;
 
+    // After analysis completes, also fetch articles based on the reviewed declaration
+    fetchArticlesForReview();
+
   } catch(err) { results.innerHTML=`<div class="alert error">⚠ ${escHtml(err.message)}</div>`; }
   finally { btn.disabled=false; btn.textContent='🔍 Analizar Declaración'; }
+}
+
+// Fetch articles for an externally-reviewed declaration
+async function fetchArticlesForReview() {
+  if (!_reviewText || _reviewText.length < 500) return;
+  // Try to detect country from declaration text
+  const countryMap = {
+    cuba: ['Cuba','cubano','cubana','La Habana','Habana','Castro','régimen cubano'],
+    venezuela: ['Venezuela','venezolano','venezolana','Caracas','Maduro','PSUV','chavismo'],
+    nicaragua: ['Nicaragua','nicaragüense','Managua','Ortega','FSLN','sandinista'],
+    honduras: ['Honduras','hondureño','hondureña','Tegucigalpa'],
+    elsalvador: ['El Salvador','salvadoreño','salvadoreña','San Salvador'],
+    guatemala: ['Guatemala','guatemalteco','guatemalteca'],
+    mexico: ['México','mexicano','mexicana','CDMX'],
+    colombia: ['Colombia','colombiano','colombiana','FARC','ELN','Bogotá','Medellín'],
+    haiti: ['Haití','haitiano','haitiana','Port-au-Prince','G9','400 Mawozo'],
+  };
+  let detectedCountry = '';
+  let maxMatches = 0;
+  for (const [c, keywords] of Object.entries(countryMap)) {
+    const matches = keywords.filter(k => _reviewText.toLowerCase().includes(k.toLowerCase())).length;
+    if (matches > maxMatches) { maxMatches = matches; detectedCountry = c; }
+  }
+  const countryDisplayMap = {cuba:'Cuba',venezuela:'Venezuela',nicaragua:'Nicaragua',honduras:'Honduras',elsalvador:'El Salvador',guatemala:'Guatemala',mexico:'México',colombia:'Colombia',haiti:'Haití'};
+  const country = countryDisplayMap[detectedCountry] || 'país de origen';
+
+  // Try to detect asylum ground from text
+  let groundEN = 'political persecution';
+  if (/religi[oó]n|cristiano|musulm|iglesia/.test(_reviewText)) groundEN = 'religious persecution';
+  else if (/raza|étnic|indígena/.test(_reviewText)) groundEN = 'racial ethnic persecution';
+  else if (/familia|grupo social|orientaci[oó]n sexual|LGBT/i.test(_reviewText)) groundEN = 'particular social group persecution';
+
+  const currentYear = new Date().getFullYear();
+  const dateFrom = currentYear - 6;
+  const dateTo = currentYear;
+
+  // Show articles section with loading
+  const resultsEl = document.getElementById('reviewResults');
+  if (resultsEl) {
+    const articlesSection = document.createElement('div');
+    articlesSection.id = 'reviewArticlesSection';
+    articlesSection.style.cssText = 'margin-top:20px';
+    articlesSection.innerHTML = `
+      <div class="review-score-card">
+        <h3>📰 Artículos de Apoyo</h3>
+        <div id="reviewArticlesContent">
+          <div class="loading-state" style="min-height:140px"><div class="spinner"></div><p>Buscando artículos de apoyo basados en la declaración...</p></div>
+        </div>
+      </div>`;
+    resultsEl.appendChild(articlesSection);
+  }
+
+  try {
+    const newsItems = await fetchNews(country, groundEN, dateFrom, dateTo, currentYear, '', 1, _reviewText);
+    _reviewAnalysis = _reviewAnalysis || {};
+    _reviewAnalysis.newsItems = newsItems;
+    renderReviewArticles(newsItems);
+    // Update cached HTML
+    if (resultsEl) _reviewResultsHTML = resultsEl.innerHTML;
+  } catch(e) {
+    renderReviewArticles([]);
+  }
+}
+
+function renderReviewArticles(items) {
+  const content = document.getElementById('reviewArticlesContent');
+  if (!content) return;
+  if (!items || items.length === 0) {
+    content.innerHTML = `
+      <div class="alert">
+        <strong>⚠ No se encontraron artículos.</strong><br>
+        <button onclick="retryReviewArticles()" class="btn-download" style="margin-top:10px;padding:10px 16px">🔄 Reintentar búsqueda</button>
+      </div>`;
+    return;
+  }
+  content.innerHTML = items.map(item => {
+    const isOfficial = /OSAC|State Dept|State Department|Departamento de Estado/i.test(item.source||'');
+    return `
+    <div class="news-card" style="margin-bottom:10px">
+      <div class="news-title"><a href="${escHtml(item.url||'#')}" target="_blank">${escHtml(item.title||'Sin título')}</a></div>
+      <div class="news-meta">
+        <span>${escHtml(item.source||'')}</span> · <span>${escHtml(item.date||'')}</span>
+        ${isOfficial?'<span style="background:var(--gold);color:var(--navy);padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700">OFICIAL</span>':''}
+      </div>
+      <div class="news-summary">${escHtml(item.summary||'')}</div>
+      <div class="news-relevance"><strong>Relevancia legal:</strong> ${escHtml(item.relevance||'')}</div>
+    </div>`;
+  }).join('');
+}
+
+async function retryReviewArticles() {
+  const content = document.getElementById('reviewArticlesContent');
+  if (content) content.innerHTML = '<div class="loading-state" style="min-height:140px"><div class="spinner"></div><p>Reintentando búsqueda...</p></div>';
+  fetchArticlesForReview();
 }
 
 // ─── STREAMING HELPER ─────────────────────────────────────────────────────────
