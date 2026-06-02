@@ -2410,7 +2410,7 @@ CRITICAL: You MUST return at least 6 articles. Return ONLY a valid JSON array, n
 ]`;
 
     const text = await callStreaming(
-      'claude-opus-4-7',
+      'claude-sonnet-4-6',
       4000,
       [{ role: 'user', content: newsPrompt }],
       null,
