@@ -771,6 +771,7 @@ let _reviewAnalysis = null;     // parsed JSON result from reviewDeclaration
 let _reviewAnswers = {};        // { questionIndex: answerText }
 let _reviewResultsHTML = '';    // cached HTML of results panel
 let _reviewBillingRecorded = false;
+let _attorneyNotes = '';            // observaciones del abogado para mejora
 let _finalDeclaration = '';      // improved/final declaration text
 let _finalSource = '';            // 'cuestionario' or 'externa'
 let _finalCaseName = '';
@@ -2119,7 +2120,11 @@ ${transcript.substring(0, 3000)}${transcript.length > 3000 ? '\n[... continúa .
 
 ═══ INSTRUCCIONES DE REDACCIÓN ═══
 
-Redacta una declaración formal I-589 en español, primera persona, párrafos numerados (1. 2. 3...). Sin Markdown, sin asteriscos, sin encabezados. 60-90 párrafos. Si falta información crítica, escribe [PENDIENTE: pregunta específica].
+Redacta una declaración formal I-589 en español, primera persona, párrafos numerados (1. 2. 3...). Sin Markdown, sin asteriscos, sin encabezados.
+
+LONGITUD: La declaración debe ser tan extensa como sea necesario para cubrir TODOS los hechos relevantes que el cliente proporcionó. No hay límite artificial de párrafos. Usa entre 60 y 150+ párrafos según la complejidad del caso. NUNCA recortes información para acortar la declaración. Si tienes muchos eventos, ruta de viaje compleja, persecución de familiares, o detalles importantes, escríbelos todos completos.
+
+Si falta información crítica, escribe [PENDIENTE: pregunta específica].
 
 PRINCIPIO FUNDAMENTAL — NEXO CAUSAL TEJIDO A LO LARGO DE TODA LA NARRATIVA:
 Esta es la instrucción más importante de todas. CADA evento de persecución, sin importar cómo lo describió el cliente, debe estar conectado al motivo protegido de asilo (opinión política, religión, familia, raza, grupo social particular). No hay eventos aislados — todo tiene un por qué.
@@ -2293,7 +2298,7 @@ Lista numerada de todas las preguntas [PENDIENTE].`;
         </div>
       </div>`;
 
-    const rawText_raw = await callStreaming('claude-opus-4-7', 32000,
+    let rawText_raw = await callStreaming('claude-opus-4-7', 32000,
       [{ role: 'user', content: prompt }],
       (chunk) => {
         streamedText += chunk;
@@ -2303,6 +2308,47 @@ Lista numerada de todas las preguntas [PENDIENTE].`;
         if (wc) wc.textContent = streamedText.trim().split(/\s+/).length.toLocaleString();
       }
     );
+
+    // Auto-continuation if declaration was cut off
+    let continuationAttempts = 0;
+    const MAX_CONTINUATIONS = 3;
+    while (continuationAttempts < MAX_CONTINUATIONS && !declarationLooksComplete(rawText_raw)) {
+      continuationAttempts++;
+      console.log(`Declaration looks incomplete, continuing... (attempt ${continuationAttempts})`);
+      const preview = document.getElementById('livePreview');
+      if (preview) {
+        preview.innerHTML += `<div style="color:var(--gold);font-weight:600;margin-top:10px">⏳ Continuando declaración (${continuationAttempts}/${MAX_CONTINUATIONS})...</div>`;
+      }
+      const continuationPrompt = `Eres el mismo paralegal experto que estaba redactando esta declaración de asilo I-589. La generación se cortó por límite de tokens. Tu tarea es CONTINUAR donde se quedó, manteniendo el mismo estilo, tono y narrativa.
+
+INSTRUCCIONES ORIGINALES (las mismas que tenías):
+${prompt}
+
+DECLARACIÓN ESCRITA HASTA AHORA (continúa después del último párrafo, sin repetir):
+"""
+${rawText_raw}
+"""
+
+REGLAS PARA LA CONTINUACIÓN:
+- Comienza con el siguiente número de párrafo que corresponde (NO repitas el último párrafo escrito)
+- Mantén exactamente el mismo estilo, tono y voz de primera persona
+- Continúa la narrativa cronológicamente desde donde se quedó
+- NO introduzcas información que no esté en los datos del cliente
+- Termina la declaración con la firma "Yo, [nombre], declaro bajo pena de perjurio..." si no se ha incluido todavía
+- NO escribas introducción, encabezados ni explicación — solo continúa los párrafos numerados
+
+Continúa ahora:`;
+
+      let continuationText = '';
+      const continuationResp = await callStreaming('claude-opus-4-7', 32000,
+        [{ role: 'user', content: continuationPrompt }],
+        (chunk) => {
+          continuationText += chunk;
+          if (preview) { preview.textContent = rawText_raw + '\n' + continuationText; preview.scrollTop = preview.scrollHeight; }
+        }
+      );
+      rawText_raw += '\n' + continuationText.trim();
+    }
 
     let rawText = rawText_raw.trim()
       .replace(/^#{1,3}\s+/gm,'').replace(/\*\*(.*?)\*\*/g,'$1').replace(/\*(.*?)\*/g,'$1')
@@ -2361,7 +2407,7 @@ async function fetchNews(country, groundEN, dateFrom, dateTo, currentYear, perse
 
 Declaración:
 """
-${declarationText.slice(0, 20000)}
+${declarationText.slice(0, 30000)}
 """
 
 Devuelve SOLO el resumen, sin introducción ni explicación. Máximo 600 caracteres.`;
@@ -2531,13 +2577,16 @@ function renderNews(data) {
     ${n.url?.startsWith('http') ? `<a href="${escHtml(n.url)}" target="_blank" class="news-link-btn" style="margin-top:10px;display:inline-block">🔗 Ver artículo</a>` : ''}
   </div>`;
 
+  const currentYear = new Date().getFullYear();
+  const dFrom = data.dateFrom || (currentYear - 6);
+  const dTo = data.dateTo || currentYear;
   body.innerHTML = `<div style="max-width:780px;margin:0 auto">
     <div style="background:rgba(200,169,110,0.08);border:1px solid rgba(200,169,110,0.3);border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:12px;color:var(--navy)">
       <strong>📌 Fuente prioritaria:</strong> OSAC (Overseas Security Advisory Council, Dept. de Estado) · Complementado con Human Rights Watch, Amnesty International y medios verificados.
       <br><strong>Total de artículos:</strong> ${data.newsItems.length} (${historical.length} históricos + ${current.length} actuales)
     </div>
-    ${historical.length ? `<div class="section-title-news">📰 Artículos del Período de los Eventos (${data.dateFrom}–${data.dateTo})</div>
-      <div class="alert" style="margin-bottom:16px">Documentan las condiciones en ${escHtml(data.country)} durante los eventos del cliente. Establecen que el temor era objetivamente fundado en ese momento.</div>
+    ${historical.length ? `<div class="section-title-news">📰 Artículos del Período de los Eventos (${dFrom}–${dTo})</div>
+      <div class="alert" style="margin-bottom:16px">Documentan las condiciones en ${escHtml(data.country || 'país de origen')} durante los eventos del cliente. Establecen que el temor era objetivamente fundado en ese momento.</div>
       ${historical.map(card).join('')}` : ''}
     ${current.length ? `<div class="section-title-news" style="margin-top:32px">🔴 Condiciones Actuales — Por Qué No Puede Regresar</div>
       <div class="alert" style="background:rgba(230,57,70,0.06);border-color:rgba(230,57,70,0.3);margin-bottom:16px">Muestran que la situación NO ha mejorado. Clave para establecer temor fundado de persecución futura y que la reubicación interna no es razonable.</div>
@@ -2994,6 +3043,16 @@ ${_reviewText.substring(0, 60000)}`;
       <div class="review-score-card" style="border-color:var(--gold);background:rgba(200,169,110,0.05)">
         <h3>✨ Mejorar esta Declaración</h3>
         <p style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.6">La IA reescribirá la declaración aplicando todas las correcciones identificadas e incorporando las respuestas que proporcionó arriba. Los datos originales del cliente se preservan sin inventar información.</p>
+
+        <div style="margin-bottom:14px">
+          <label style="display:block;font-size:11px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">📝 Observaciones e instrucciones del abogado (opcional)</label>
+          <textarea id="attorneyNotes"
+            placeholder="Escriba aquí cualquier corrección, observación o instrucción específica que quiera que la IA aplique al mejorar la declaración. Por ejemplo: 'Enfatizar más el nexo entre el acoso del policía y la opinión política', 'El cliente nunca trabajó como cajera, corregir', 'Agregar que el cliente tiene hijos en EE.UU.', etc."
+            oninput="_attorneyNotes=this.value"
+            style="width:100%;min-height:120px;background:white;border:1.5px solid var(--border);border-radius:8px;padding:12px;font-family:'Source Sans 3',sans-serif;font-size:13px;line-height:1.7;color:var(--text);resize:vertical;outline:none">${escHtml(_attorneyNotes||'')}</textarea>
+          <div style="font-size:11px;color:var(--muted);margin-top:6px">La IA tomará estas observaciones como instrucciones prioritarias al reescribir la declaración.</div>
+        </div>
+
         <button class="btn-review" id="btnImprove" onclick="improveDeclaration()" style="background:linear-gradient(135deg,var(--gold),var(--gold-light));color:var(--navy)">
           ✨ Mejorar y Reescribir Declaración
         </button>
@@ -3107,6 +3166,23 @@ async function retryReviewArticles() {
 // Uses /api/claude-stream (SSE) for long requests to avoid 504 timeout.
 // onChunk(text) is called with each text token as it arrives.
 // Returns the full accumulated text when done.
+// Detects if a declaration ended naturally (with perjury signature) or was cut off
+function declarationLooksComplete(text) {
+  if (!text || text.length < 200) return true; // empty/tiny = nothing to continue
+  const lastChars = text.trim().slice(-1500).toLowerCase();
+  // Check for perjury signature variations
+  const hasSignature = /declaro\s+bajo\s+pena\s+de\s+perjurio/i.test(lastChars)
+    || /penalty\s+of\s+perjury/i.test(lastChars)
+    || /firmo|firmado/i.test(lastChars)
+    || /verdadero\s+y\s+correcto/i.test(lastChars);
+  // Check for ===INFORMACIÓN FALTANTE=== marker (means the model finished and listed missing info)
+  const hasMissingMarker = text.includes('===INFORMACIÓN FALTANTE===');
+  // Check if last paragraph ends abruptly (without period, mid-sentence)
+  const lastLine = text.trim().split('\n').filter(l => l.trim()).pop() || '';
+  const endsAbruptly = lastLine.length > 50 && !/[.!?]\s*$/.test(lastLine.trim());
+  return (hasSignature || hasMissingMarker) && !endsAbruptly;
+}
+
 async function callStreaming(model, max_tokens, messages, onChunk, useWebSearch = false) {
   return new Promise((resolve, reject) => {
     const body = { model, max_tokens, messages };
@@ -3269,6 +3345,13 @@ async function improveDeclaration() {
         }).join('\n')
     : '';
 
+  // Get attorney notes from textarea
+  const attorneyNotesEl = document.getElementById('attorneyNotes');
+  if (attorneyNotesEl) _attorneyNotes = attorneyNotesEl.value;
+  const attorneyNotesText = _attorneyNotes && _attorneyNotes.trim()
+    ? `\n\nINSTRUCCIONES Y OBSERVACIONES DEL ABOGADO (PRIORIDAD ALTA — aplicar estas correcciones obligatoriamente):\n${_attorneyNotes.trim()}`
+    : '';
+
   btn.disabled = true;
   btn.textContent = '⏳ Mejorando...';
   improveResult.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Aplicando mejoras a la declaración... esto puede tomar 1-2 minutos.</p></div>`;
@@ -3349,6 +3432,7 @@ FECHAS — TRATARLAS COMO INFORMACIÓN CRÍTICA:
 DECLARACIÓN ORIGINAL:
 ${originalText}
 ${answersText}
+${attorneyNotesText}
 
 Devuelve ÚNICAMENTE la declaración mejorada completa, numerada de principio a fin, sin comentarios adicionales.`;
 
@@ -3373,10 +3457,47 @@ Devuelve ÚNICAMENTE la declaración mejorada completa, numerada de principio a 
 
     let improved = await callStreaming(
       'claude-opus-4-7',
-      16000,
+      32000,
       [{ role: 'user', content: improvePrompt }],
       showProgress
     );
+
+    // Auto-continuation for improve flow
+    let improveContinuations = 0;
+    const MAX_IMPROVE_CONTINUATIONS = 3;
+    while (improveContinuations < MAX_IMPROVE_CONTINUATIONS && !declarationLooksComplete(improved)) {
+      improveContinuations++;
+      console.log(`Improved declaration looks incomplete, continuing... (${improveContinuations})`);
+      const continuationPrompt = `Eres el mismo paralegal experto que estaba reescribiendo esta declaración de asilo I-589 mejorada. La generación se cortó por límite de tokens. Tu tarea es CONTINUAR donde se quedó.
+
+INSTRUCCIONES ORIGINALES (las mismas que tenías):
+${improvePrompt}
+
+DECLARACIÓN MEJORADA ESCRITA HASTA AHORA:
+"""
+${improved}
+"""
+
+REGLAS PARA LA CONTINUACIÓN:
+- Continúa exactamente donde se quedó la declaración anterior
+- NO repitas párrafos ya escritos
+- Mantén el mismo estilo, tono y voz de primera persona
+- Continúa la narrativa cronológicamente
+- Termina con la firma "Yo, [nombre], declaro bajo pena de perjurio..." si no está presente
+- NO escribas introducción, encabezados ni explicación — solo continúa los párrafos numerados
+
+Continúa ahora:`;
+
+      let continuationText = '';
+      await callStreaming('claude-opus-4-7', 32000,
+        [{ role: 'user', content: continuationPrompt }],
+        (chunk) => {
+          continuationText += chunk;
+          showProgress(chunk);
+        }
+      );
+      improved += '\n' + continuationText.trim();
+    }
 
     // Clean markdown
     improved = improved.replace(/^#{1,3}\s+/gm,'').replace(/\*\*(.*?)\*\*/g,'$1')
@@ -3475,10 +3596,12 @@ async function generateArticlesForFinal() {
 
   try {
     const newsItems = await fetchNews(country, groundEN, dateFrom, dateTo, currentYear, '', 1, _finalDeclaration);
-    // Save to generatedData so Artículos tab shows them
+    // Save to generatedData so Artículos tab shows them with correct dates
     if (!generatedData) generatedData = {};
     generatedData.newsItems = newsItems;
     generatedData.country = country;
+    generatedData.dateFrom = dateFrom;
+    generatedData.dateTo = dateTo;
     if (!generatedData.declarationText) generatedData.declarationText = _finalDeclaration;
     saveCurrentCase(true);
     if (statusEl) {
