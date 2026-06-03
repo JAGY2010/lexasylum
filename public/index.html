@@ -3358,7 +3358,19 @@ async function improveDeclaration() {
 
   const improvePrompt = `Eres un paralegal experto en asilo I-589 con 20 años de experiencia ante cortes de inmigración de EEUU. Mejora y reescribe esta declaración aplicando los estándares reales del BIA (Board of Immigration Appeals).
 
-REGLA ABSOLUTA: NO inventes información nueva. Solo usa los hechos que están en la declaración original. Si falta algo crítico, márcalo como [PENDIENTE: pregunta específica].
+REGLA ABSOLUTA: NO inventes información nueva. Solo usa los hechos que están en la declaración original y las respuestas proporcionadas por el cliente/abogado.
+
+DECLARACIÓN FINAL — SIN MARCAS [PENDIENTE]:
+Esta es la versión FINAL de la declaración (lista para presentar en corte). Debes ELIMINAR completamente todas las marcas [PENDIENTE: ...] de la declaración mejorada. Para cada [PENDIENTE] que encuentres en la declaración original:
+
+1. Si el cliente/abogado proporcionó información para esa pregunta → incorpórala naturalmente en el párrafo
+2. Si NO se proporcionó información → reescribe el párrafo de manera natural usando los hechos disponibles, OMITIENDO la parte donde estaba el [PENDIENTE]. NO escribas "[información no disponible]", "[no proporcionado]" ni nada similar. Simplemente fluye la narrativa sin esa información específica.
+
+Ejemplo:
+- ANTES: "Trabajaba en [PENDIENTE: nombre del lugar] como cajera durante el período 2017-2018."
+- DESPUÉS (sin info nueva): "Trabajaba como cajera durante el período 2017-2018."
+
+La Declaración Final debe leerse como un documento completo, profesional y sin huecos visibles, aunque internamente sepamos que algunos detalles no se obtuvieron.
 
 PRINCIPIO FUNDAMENTAL — NEXO CAUSAL:
 CADA evento debe estar conectado al motivo protegido. Aplica a todos los tipos:
@@ -3369,7 +3381,7 @@ CADA evento debe estar conectado al motivo protegido. Aplica a todos los tipos:
 - Represalias a familia: "atacaron a mi familia para presionarme a mí"
 - Reclutamiento rechazado: "negarme fue un acto de oposición a su control"
 - Vigilancia: "fui vigilado por mi perfil de [motivo protegido]"
-Las palabras textuales del persecutor son el nexo más poderoso — inclúyelas siempre. Si no hay base para inferir el nexo, marcar [PENDIENTE: ¿por qué cree que lo eligieron a usted?]
+Las palabras textuales del persecutor son el nexo más poderoso — inclúyelas siempre. Si no hay base para inferir el nexo y el cliente/abogado no lo proporcionó, omite la afirmación del nexo en lugar de marcarla como pendiente.
 
 MEJORAS QUE DEBES APLICAR:
 
