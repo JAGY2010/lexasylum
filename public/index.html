@@ -212,13 +212,12 @@
       <div style="display:flex;gap:4px;flex-wrap:wrap">
         <button class="tab-btn active" id="tabQuestionnaire" onclick="switchTab('questionnaire')">📋 Cuestionario</button>
         <button class="tab-btn" id="tabTranscript" onclick="switchTab('transcript')">🎙 Transcripción</button>
-        <button class="tab-btn" id="tabRaw" onclick="switchTab('raw')">📄 Texto Plano</button>
-        <button class="tab-btn" id="tabEdit" onclick="switchTab('edit')">✏️ Editar</button>
-        <button class="tab-btn" id="tabReview" onclick="switchTab('review')">📋 Revisar</button>
-        <button class="tab-btn" id="tabAnalysis" onclick="switchTab('analysis')">🔍 Análisis</button>
+        <button class="tab-btn" id="tabRaw" onclick="switchTab('raw')">📄 Declaración Borrador</button>
+        <button class="tab-btn" id="tabReview" onclick="switchTab('review')">🔍 Revisar</button>
+        <button class="tab-btn" id="tabFinal" onclick="switchTab('final')">✨ Declaración Final</button>
         <button class="tab-btn" id="tabNews" onclick="switchTab('news')">📰 Artículos</button>
       </div>
-      <div class="toolbar-right">
+      <div class="toolbar-right" id="toolbarRight">
         <button class="btn-copy" onclick="copyText()" id="copyBtn">📋 Copiar</button>
         <button class="btn-download" onclick="downloadBilingual()" id="downloadBtn">⬇ ES+EN (.txt)</button>
         <button class="btn-download" onclick="downloadWord()" id="wordBtn" style="background:linear-gradient(135deg,#2d6a4f,#52b788)">📝 Word</button>
@@ -772,6 +771,9 @@ let _reviewAnalysis = null;     // parsed JSON result from reviewDeclaration
 let _reviewAnswers = {};        // { questionIndex: answerText }
 let _reviewResultsHTML = '';    // cached HTML of results panel
 let _reviewBillingRecorded = false;
+let _finalDeclaration = '';      // improved/final declaration text
+let _finalSource = '';            // 'cuestionario' or 'externa'
+let _finalCaseName = '';
 
 // ─── COUNTRY GROUP ─────────────────────────────────────────────────────────────
 function getCountryGroup() {
@@ -2317,28 +2319,21 @@ Lista numerada de todas las preguntas [PENDIENTE].`;
     const sigBlock = `\n\nYo, ${get('name') || '___________'}, declaro bajo pena de perjurio conforme a las leyes de los Estados Unidos que lo anterior es verdadero y correcto según mi saber y entender.\n\n_______________________________\n${get('name') || '___________'}\nFecha: ___________`;
     const declarationText = declarationOnly + '\n\n' + '─'.repeat(60) + sigBlock;
 
-    // Fetch news
-    setLoadingMsg('Buscando artículos de apoyo...', 2);
+    // NO fetch articles during initial generation - only after improvement to Final
     const groundEN = { political:'political persecution opinion', religion:'religious persecution', race:'racial ethnic persecution', social:'particular social group persecution', nationality:'nationality persecution' }[groundType] || 'persecution';
     const [dateFrom, dateTo] = getDateRange();
     const currentYear = new Date().getFullYear();
-    const newsItems = await fetchNews(country, groundEN, dateFrom, dateTo, currentYear, get('persecutors'), 1, declarationText);
 
-    generatedData = { declarationText, newsItems, name: get('name'), anumber: get('anumber'), dateFrom, dateTo, country, missingQuestions };
+    generatedData = { declarationText, newsItems: [], name: get('name'), anumber: get('anumber'), dateFrom, dateTo, country, missingQuestions };
     _analysisCache = null;
     _analysisCachedHTML = '';
     _translationCache = null;
+    _finalDeclaration = ''; // reset final
     saveCurrentCase(true);
     // Record billing event — case generated
     recordBillingEvent('case', currentCaseId, get('name') || 'Sin nombre');
     renderOutput(generatedData);
     if (missingQuestions.length > 0) showMissingBanner(missingQuestions.length);
-
-    // Wait 15 seconds before running analysis to avoid rate limit
-    // (generation + news search already consumed many tokens)
-    setTimeout(() => {
-      if (currentTab === 'analysis') renderAnalysis();
-    }, 15000);
 
   } catch(err) {
     document.getElementById('contentBody').innerHTML = `<div style="padding:24px"><div class="alert error">⚠ Error: ${escHtml(err.message)}</div></div>`;
@@ -2565,25 +2560,56 @@ let _analysisCachedHTML = '';
 
 function switchTab(tab) {
   currentTab = tab;
-  ['questionnaire','transcript','raw','edit','review','analysis','news'].forEach(t => {
+  ['questionnaire','transcript','raw','review','final','news'].forEach(t => {
     document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1))?.classList.toggle('active', t===tab);
   });
+  // Toolbar visibility per tab
+  const tb = document.getElementById('toolbarRight');
+  const copyBtn = document.getElementById('copyBtn');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const wordBtn = document.getElementById('wordBtn');
+  if (tab === 'raw') {
+    // Borrador: only Copy
+    if (tb) tb.style.display = '';
+    if (copyBtn) copyBtn.style.display = '';
+    if (downloadBtn) downloadBtn.style.display = 'none';
+    if (wordBtn) wordBtn.style.display = 'none';
+  } else if (tab === 'final') {
+    // Final: Copy + Download + Word
+    if (tb) tb.style.display = '';
+    if (copyBtn) copyBtn.style.display = '';
+    if (downloadBtn) downloadBtn.style.display = '';
+    if (wordBtn) wordBtn.style.display = '';
+  } else {
+    // Other tabs: hide toolbar
+    if (tb) tb.style.display = 'none';
+  }
+
   if (tab==='questionnaire') renderQuestionnaire();
   else if (tab==='transcript') renderTranscriptTab();
   else if (tab==='review') renderReview();
-  else if (tab==='analysis') {
-    // Only re-run if declaration changed since last analysis
-    const snapshot = generatedData?.declarationText || '';
-    if (_analysisCache && _analysisCache.declarationSnapshot === snapshot && _analysisCachedHTML) {
-      document.getElementById('contentBody').innerHTML = _analysisCachedHTML;
-    } else {
-      renderAnalysis();
-    }
+  else if (tab==='final') renderFinal();
+  else if (tab==='news') {
+    if (generatedData && generatedData.newsItems) renderNews(generatedData);
+    else document.getElementById('contentBody').innerHTML = `<div class="empty-state"><div class="empty-icon">📰</div><h3>Sin artículos aún</h3><p>Los artículos se generan automáticamente cuando se mejora la declaración en la pestaña "Revisar".</p></div>`;
   }
   else if (generatedData) renderOutput(generatedData);
   else {
     document.getElementById('contentBody').innerHTML = `<div class="empty-state"><div class="empty-icon">📄</div><h3>Sin declaración generada</h3><p>Complete el cuestionario y presione "Generar Declaración".</p></div>`;
   }
+}
+
+function renderFinal() {
+  const body = document.getElementById('contentBody');
+  if (!_finalDeclaration) {
+    body.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">✨</div>
+      <h3>Sin declaración final</h3>
+      <p>La declaración final aparece aquí después de mejorar una declaración en la pestaña "Revisar". Responda las preguntas pendientes y agregue las correcciones del abogado, luego presione "Mejorar Declaración".</p>
+    </div>`;
+    return;
+  }
+  body.innerHTML = `<div class="raw-text">${escHtml(_finalDeclaration)}</div>`;
 }
 
 // ─── CASES ─────────────────────────────────────────────────────────────────────
@@ -2725,40 +2751,61 @@ function deleteCase(i) {
 // ─── REVIEW ───────────────────────────────────────────────────────────────────
 function renderReview() {
   const body = document.getElementById('contentBody');
+
+  // If we have a generated declaration from cuestionario, auto-load it for review
+  const hasGenerated = generatedData && generatedData.declarationText;
+  const declarationToReview = hasGenerated ? generatedData.declarationText : _reviewText;
+  const sourceLabel = hasGenerated ? '📋 Declaración del cuestionario (lista para revisar)' : '📋 Revisar Declaración';
+  const sourceSubtitle = hasGenerated
+    ? 'Esta es la declaración generada desde el cuestionario. Revise el análisis, responda preguntas pendientes y agregue correcciones del abogado para generar la Declaración Final.'
+    : 'Suba un PDF o pegue el texto de una declaración externa para analizarla y mejorarla.';
+
   body.innerHTML = `
     <div class="review-wrap">
       <div class="review-input-card">
-        <h3>📋 Revisar Declaración Externa</h3>
-        <p>Suba un PDF o pegue el texto de cualquier declaración para evaluarla, mejorarla y guardarla como caso independiente.</p>
+        <h3>${sourceLabel}</h3>
+        <p>${sourceSubtitle}</p>
 
-        <div style="margin-bottom:14px">
-          <label style="display:block;font-size:11px;font-weight:600;color:var(--navy);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Nombre del caso</label>
-          <input type="text" id="reviewCaseName" placeholder="Ej: Pedro García — Venezuela"
-            value="${escHtml(_reviewCaseName)}"
-            oninput="_reviewCaseName=this.value"
-            style="width:100%;background:var(--cream);border:1px solid var(--border);border-radius:7px;padding:8px 12px;font-family:'Source Sans 3',sans-serif;font-size:13px;color:var(--text);outline:none">
-        </div>
+        ${hasGenerated ? `
+          <div style="background:#d8f3dc;border-left:3px solid #52b788;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:#1b4332">
+            ✓ <strong>Declaración cargada:</strong> ${declarationToReview.trim().split(/\s+/).length.toLocaleString()} palabras desde el cuestionario.
+            <button onclick="useExternalReview()" style="margin-left:10px;background:none;border:1px solid #52b788;border-radius:4px;padding:3px 10px;font-size:11px;cursor:pointer;color:#1b4332">Revisar una declaración externa</button>
+          </div>
+        ` : `
+          <div style="margin-bottom:14px">
+            <label style="display:block;font-size:11px;font-weight:600;color:var(--navy);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Nombre del caso</label>
+            <input type="text" id="reviewCaseName" placeholder="Ej: Pedro García — Venezuela"
+              value="${escHtml(_reviewCaseName)}"
+              oninput="_reviewCaseName=this.value"
+              style="width:100%;background:var(--cream);border:1px solid var(--border);border-radius:7px;padding:8px 12px;font-family:'Source Sans 3',sans-serif;font-size:13px;color:var(--text);outline:none">
+          </div>
 
-        <div class="pdf-upload-area" id="pdfDropZone">
-          <input type="file" id="pdfFileInput" accept=".pdf" onchange="handlePdfUpload(event)">
-          <div>📄 Haga clic o arrastre un PDF aquí</div>
-        </div>
-        <div class="tab-divider">O</div>
-        <textarea class="review-textarea" id="reviewText"
-          placeholder="Pegue aquí el texto de la declaración..."
-          oninput="_reviewText=this.value;saveReviewDraft()">${escHtml(_reviewText)}</textarea>
+          <div class="pdf-upload-area" id="pdfDropZone">
+            <input type="file" id="pdfFileInput" accept=".pdf" onchange="handlePdfUpload(event)">
+            <div>📄 Haga clic o arrastre un PDF aquí</div>
+          </div>
+          <div class="tab-divider">O</div>
+          <textarea class="review-textarea" id="reviewText"
+            placeholder="Pegue aquí el texto de la declaración..."
+            oninput="_reviewText=this.value;saveReviewDraft()">${escHtml(_reviewText)}</textarea>
+        `}
+
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <button class="btn-review" id="btnReview" onclick="reviewDeclaration()" style="flex:1">🔍 Analizar Declaración</button>
-          ${_reviewText ? `<span style="font-size:11px;color:#2d6a4f">✓ Texto guardado (${_reviewText.trim().split(/\s+/).length.toLocaleString()} palabras)</span>` : ''}
+          ${(declarationToReview && declarationToReview.trim().length > 100) ? `<span style="font-size:11px;color:#2d6a4f">✓ ${declarationToReview.trim().split(/\s+/).length.toLocaleString()} palabras</span>` : ''}
         </div>
       </div>
       <div id="reviewResults">${_reviewResultsHTML}</div>
     </div>`;
 
-  const dz = document.getElementById('pdfDropZone');
-  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
-  dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
-  dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('dragover'); const f=e.dataTransfer.files[0]; if(f?.type==='application/pdf') processPdfFile(f); });
+  if (!hasGenerated) {
+    const dz = document.getElementById('pdfDropZone');
+    if (dz) {
+      dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+      dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+      dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('dragover'); const f=e.dataTransfer.files[0]; if(f?.type==='application/pdf') processPdfFile(f); });
+    }
+  }
 
   // Restore review answer inputs if results already loaded
   if (_reviewResultsHTML && _reviewAnswers) {
@@ -2768,6 +2815,14 @@ function renderReview() {
     });
   }
 }
+
+function useExternalReview() {
+  // Force external review mode by clearing the generated reference
+  _useExternalReview = true;
+  generatedData = null; // temporarily hide generated to show external upload
+  renderReview();
+}
+let _useExternalReview = false;
 
 function saveReviewDraft() {
   // Auto-save the review text to state so it persists across tab switches
@@ -2813,13 +2868,22 @@ async function processPdfFile(file) {
 }
 
 async function reviewDeclaration() {
-  const text = document.getElementById('reviewText')?.value.trim();
-  _reviewText = text || _reviewText;
+  // Determine source: generated from cuestionario OR external upload
+  const hasGenerated = generatedData && generatedData.declarationText && !_useExternalReview;
+  if (hasGenerated) {
+    _reviewText = generatedData.declarationText;
+    _reviewCaseName = document.getElementById('caseName')?.value.trim() || 'Caso del cuestionario';
+    _finalSource = 'cuestionario';
+  } else {
+    const text = document.getElementById('reviewText')?.value.trim();
+    _reviewText = text || _reviewText;
+    _finalSource = 'externa';
+  }
   const results = document.getElementById('reviewResults');
   const btn = document.getElementById('btnReview');
-  if (!_reviewText || _reviewText.length < 100) { results.innerHTML = '<div class="alert error">Pegue el texto primero.</div>'; return; }
-  // Record billing for manual text paste (only if no PDF was already uploaded)
-  if (!_reviewBillingRecorded) {
+  if (!_reviewText || _reviewText.length < 100) { results.innerHTML = '<div class="alert error">No hay declaración para analizar.</div>'; return; }
+  // Only record billing for external reviews (cuestionario already charges as case)
+  if (!hasGenerated && !_reviewBillingRecorded) {
     _reviewBillingRecorded = true;
     recordBillingEvent('review', 'review-' + Date.now(), _reviewCaseName || 'Declaración revisada');
   }
@@ -2939,8 +3003,7 @@ ${_reviewText.substring(0, 60000)}`;
     results.innerHTML = html;
     _reviewResultsHTML = html;
 
-    // After analysis completes, also fetch articles based on the reviewed declaration
-    fetchArticlesForReview();
+    // Articles are NOT generated during review - only after improving to Final Declaration
 
   } catch(err) { results.innerHTML=`<div class="alert error">⚠ ${escHtml(err.message)}</div>`; }
   finally { btn.disabled=false; btn.textContent='🔍 Analizar Declaración'; }
@@ -3324,9 +3387,14 @@ Devuelve ÚNICAMENTE la declaración mejorada completa, numerada de principio a 
     const pendingCount = (improved.match(/\[PENDIENTE:/g) || []).length;
     window._improvedDeclaration = improved;
 
+    // Save to Declaración Final
+    _finalDeclaration = improved;
+    _finalCaseName = _reviewCaseName || document.getElementById('caseName')?.value || 'Caso';
+    saveCurrentCase(true);
+
     improveResult.innerHTML = `
       <div class="review-score-card" style="border-color:#52b788">
-        <h3>✅ Declaración Mejorada</h3>
+        <h3>✅ Declaración Final Generada</h3>
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
           <div style="background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:12px;color:var(--muted)">📄 <strong style="color:var(--navy)">${paraCount}</strong> párrafos</div>
           <div style="background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:12px;color:var(--muted)">📝 <strong style="color:var(--navy)">${wc.toLocaleString()}</strong> palabras</div>
@@ -3334,41 +3402,95 @@ Devuelve ÚNICAMENTE la declaración mejorada completa, numerada de principio a 
             ? `<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:7px 12px;font-size:12px;color:#664d03;font-weight:600">⚠️ ${pendingCount} pendiente(s)</div>`
             : `<div style="background:#d8f3dc;border:1px solid #52b788;border-radius:8px;padding:7px 12px;font-size:12px;color:#1b4332;font-weight:600">✅ Sin pendientes</div>`}
         </div>
+        <div style="background:#d8f3dc;border-left:3px solid #52b788;border-radius:6px;padding:14px 16px;margin-bottom:14px;font-size:13px;color:#1b4332;line-height:1.6">
+          <strong>✨ La Declaración Final está lista.</strong><br>
+          Vea la versión completa en la pestaña <strong>"✨ Declaración Final"</strong>, donde podrá copiar, descargar como texto o Word.
+        </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
-          <button onclick="downloadImproved('txt')" style="background:linear-gradient(135deg,var(--navy),#1e3a5f);color:white;border:none;border-radius:7px;padding:8px 16px;font-family:'Source Sans 3',sans-serif;font-size:12px;font-weight:600;cursor:pointer">⬇ Descargar .txt</button>
-          <button onclick="downloadImproved('rtf')" style="background:linear-gradient(135deg,#2d6a4f,#52b788);color:white;border:none;border-radius:7px;padding:8px 16px;font-family:'Source Sans 3',sans-serif;font-size:12px;font-weight:600;cursor:pointer">📝 Descargar Word</button>
-          <button onclick="copyImproved(this)" style="background:var(--cream-dark);color:var(--navy);border:none;border-radius:7px;padding:8px 16px;font-family:'Source Sans 3',sans-serif;font-size:12px;font-weight:600;cursor:pointer">📋 Copiar texto</button>
-          <button onclick="toggleImprovedEditor(this)" id="btnEditImproved" style="background:#e8f4fd;color:#0C447C;border:1px solid #90cdf4;border-radius:7px;padding:8px 16px;font-family:'Source Sans 3',sans-serif;font-size:12px;font-weight:600;cursor:pointer">✏️ Editar</button>
+          <button onclick="switchTab('final')" style="background:linear-gradient(135deg,var(--gold),var(--gold-light));color:var(--navy);border:none;border-radius:7px;padding:10px 18px;font-family:'Source Sans 3',sans-serif;font-size:13px;font-weight:700;cursor:pointer">✨ Ver Declaración Final</button>
+          <button onclick="switchTab('news')" id="btnGoToNews" style="background:var(--navy);color:white;border:none;border-radius:7px;padding:10px 18px;font-family:'Source Sans 3',sans-serif;font-size:13px;font-weight:600;cursor:pointer">📰 Ver Artículos</button>
         </div>
-
-        <div style="background:rgba(200,169,110,0.08);border:1px solid rgba(200,169,110,0.3);border-radius:8px;padding:14px;margin-bottom:16px">
-          <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:10px">💾 Guardar como caso independiente</div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-            <input type="text" id="saveReviewName" placeholder="Nombre del caso..." value="${escHtml(document.getElementById('reviewCaseName')?.value||'')}"
-              style="flex:1;min-width:180px;background:white;border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-family:'Source Sans 3',sans-serif;font-size:13px;color:var(--text);outline:none">
-            <button onclick="saveAndOpenReviewedCase()" style="background:linear-gradient(135deg,var(--gold),var(--gold-light));color:var(--navy);border:none;border-radius:7px;padding:8px 14px;font-family:'Source Sans 3',sans-serif;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">
-              💾 Guardar y abrir caso
-            </button>
-          </div>
-          <div style="font-size:11px;color:var(--muted);margin-top:7px">Al guardar podrás acceder a Análisis y Artículos para este caso en cualquier momento</div>
-        </div>
-
-        <div id="improvedViewMode" style="background:var(--cream);border:1px solid var(--border);border-radius:8px;padding:20px;font-size:13.5px;line-height:1.9;white-space:pre-wrap;max-height:500px;overflow-y:auto;color:var(--text)">${highlightPendiente(improved)}</div>
-        <div id="improvedEditMode" style="display:none">
-          <textarea id="improvedEditor" style="width:100%;min-height:500px;border:2px solid var(--gold);border-radius:8px;padding:20px;font-family:'Source Sans 3',sans-serif;font-size:13.5px;line-height:1.9;color:var(--text);background:white;resize:vertical;outline:none" oninput="window._improvedDeclaration=this.value">${escHtml(improved)}</textarea>
-          <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
-            <button onclick="saveImprovedEdits()" style="background:linear-gradient(135deg,var(--gold),var(--gold-light));color:var(--navy);border:none;border-radius:7px;padding:9px 18px;font-family:'Source Sans 3',sans-serif;font-size:13px;font-weight:700;cursor:pointer">💾 Guardar cambios</button>
-            <button onclick="toggleImprovedEditor(document.getElementById('btnEditImproved'))" style="background:var(--cream-dark);color:var(--navy);border:none;border-radius:7px;padding:9px 18px;font-family:'Source Sans 3',sans-serif;font-size:13px;font-weight:600;cursor:pointer">✕ Cancelar</button>
-            <span id="savedMsg" style="font-size:12px;color:#2d6a4f;display:none">✅ Cambios guardados</span>
-          </div>
-        </div>
+        <div id="articleStatus" style="font-size:12px;color:var(--muted);margin-bottom:14px">🔄 Generando artículos de apoyo basados en la declaración final...</div>
       </div>`;
+
+    // Now generate articles based on the FINAL declaration
+    generateArticlesForFinal();
 
   } catch(err) {
     improveResult.innerHTML = `<div class="alert error">⚠ Error: ${escHtml(err.message)}</div>`;
   } finally {
     btn.disabled = false;
     btn.textContent = '✨ Mejorar y Reescribir Declaración';
+  }
+}
+
+// Generate articles based on Final Declaration (replaces previous flow)
+async function generateArticlesForFinal() {
+  if (!_finalDeclaration) return;
+  const statusEl = document.getElementById('articleStatus');
+
+  // Detect country from declaration
+  const countryMap = {
+    cuba: ['Cuba','cubano','cubana','La Habana','Castro','régimen cubano'],
+    venezuela: ['Venezuela','venezolano','venezolana','Caracas','Maduro','PSUV','chavismo'],
+    nicaragua: ['Nicaragua','nicaragüense','Managua','Ortega','FSLN','sandinista'],
+    honduras: ['Honduras','hondureño','hondureña','Tegucigalpa'],
+    elsalvador: ['El Salvador','salvadoreño','salvadoreña','San Salvador'],
+    guatemala: ['Guatemala','guatemalteco','guatemalteca'],
+    mexico: ['México','mexicano','mexicana','CDMX'],
+    colombia: ['Colombia','colombiano','colombiana','FARC','ELN','Bogotá','Medellín'],
+    haiti: ['Haití','haitiano','haitiana','Port-au-Prince','G9','400 Mawozo'],
+  };
+  let detectedCountry = '';
+  let maxMatches = 0;
+  for (const [c, keywords] of Object.entries(countryMap)) {
+    const matches = keywords.filter(k => _finalDeclaration.toLowerCase().includes(k.toLowerCase())).length;
+    if (matches > maxMatches) { maxMatches = matches; detectedCountry = c; }
+  }
+  // Fallback to questionnaire country if available
+  if (!detectedCountry && generatedData?.country) {
+    const c = (generatedData.country || '').toLowerCase();
+    if (c.includes('cuba')) detectedCountry = 'cuba';
+    else if (c.includes('venezuela')) detectedCountry = 'venezuela';
+    else if (c.includes('nicaragua')) detectedCountry = 'nicaragua';
+    else if (c.includes('honduras')) detectedCountry = 'honduras';
+    else if (c.includes('salvador')) detectedCountry = 'elsalvador';
+    else if (c.includes('guatemala')) detectedCountry = 'guatemala';
+    else if (c.includes('méxico') || c.includes('mexico')) detectedCountry = 'mexico';
+    else if (c.includes('colombia')) detectedCountry = 'colombia';
+    else if (c.includes('haití') || c.includes('haiti')) detectedCountry = 'haiti';
+  }
+  const countryDisplayMap = {cuba:'Cuba',venezuela:'Venezuela',nicaragua:'Nicaragua',honduras:'Honduras',elsalvador:'El Salvador',guatemala:'Guatemala',mexico:'México',colombia:'Colombia',haiti:'Haití'};
+  const country = countryDisplayMap[detectedCountry] || generatedData?.country || 'país de origen';
+
+  // Detect asylum ground
+  let groundEN = 'political persecution';
+  if (/religi[oó]n|cristiano|musulm|iglesia/.test(_finalDeclaration)) groundEN = 'religious persecution';
+  else if (/raza|étnic|indígena/.test(_finalDeclaration)) groundEN = 'racial ethnic persecution';
+  else if (/familia|grupo social|orientaci[oó]n sexual|LGBT/i.test(_finalDeclaration)) groundEN = 'particular social group persecution';
+
+  const currentYear = new Date().getFullYear();
+  const dateFrom = currentYear - 6;
+  const dateTo = currentYear;
+
+  try {
+    const newsItems = await fetchNews(country, groundEN, dateFrom, dateTo, currentYear, '', 1, _finalDeclaration);
+    // Save to generatedData so Artículos tab shows them
+    if (!generatedData) generatedData = {};
+    generatedData.newsItems = newsItems;
+    generatedData.country = country;
+    if (!generatedData.declarationText) generatedData.declarationText = _finalDeclaration;
+    saveCurrentCase(true);
+    if (statusEl) {
+      if (newsItems.length > 0) {
+        statusEl.innerHTML = `✅ <strong style="color:#1b4332">${newsItems.length} artículos generados.</strong> Vea la pestaña <strong>📰 Artículos</strong>.`;
+        statusEl.style.color = '#1b4332';
+      } else {
+        statusEl.innerHTML = `⚠ No se encontraron artículos. <button onclick="generateArticlesForFinal()" style="margin-left:8px;background:var(--navy);color:white;border:none;border-radius:4px;padding:4px 10px;font-size:11px;cursor:pointer">🔄 Reintentar</button>`;
+      }
+    }
+  } catch(e) {
+    if (statusEl) statusEl.innerHTML = `⚠ Error al buscar artículos. <button onclick="generateArticlesForFinal()" style="margin-left:8px;background:var(--navy);color:white;border:none;border-radius:4px;padding:4px 10px;font-size:11px;cursor:pointer">🔄 Reintentar</button>`;
   }
 }
 
@@ -3874,8 +3996,15 @@ function goToQuestionnaire(sectionId) {
 
 
 function copyText() {
-  if (!generatedData) return;
-  navigator.clipboard.writeText(generatedData.declarationText).then(()=>{
+  // In Final tab, copy final; in Borrador, copy generated draft
+  let textToCopy = '';
+  if (currentTab === 'final' && _finalDeclaration) {
+    textToCopy = _finalDeclaration;
+  } else if (generatedData && generatedData.declarationText) {
+    textToCopy = generatedData.declarationText;
+  }
+  if (!textToCopy) return;
+  navigator.clipboard.writeText(textToCopy).then(()=>{
     const btn=document.getElementById('copyBtn');
     btn.textContent='✅ Copiado';
     setTimeout(()=>btn.textContent='📋 Copiar',2000);
@@ -3883,13 +4012,16 @@ function copyText() {
 }
 
 async function downloadBilingual() {
-  if (!generatedData) return;
+  // Use Final declaration if available, otherwise borrador
+  const textToDownload = _finalDeclaration || (generatedData?.declarationText);
+  if (!textToDownload) return;
   const btn=document.getElementById('downloadBtn');
   btn.disabled=true; btn.textContent='⏳ Traduciendo...';
   try {
-    const en = await getOrTranslate(btn);
-    const name=answers['name']?.value||'Cliente';
-    const content=`DECLARACIÓN EN ESPAÑOL\n${'='.repeat(60)}\n\n${generatedData.declarationText}\n\n\nSTATEMENT IN ENGLISH\n${'='.repeat(60)}\n\n${en}`;
+    // Translate the final declaration
+    const en = await translateText(textToDownload);
+    const name=answers['name']?.value||_finalCaseName||'Cliente';
+    const content=`DECLARACIÓN EN ESPAÑOL\n${'='.repeat(60)}\n\n${textToDownload}\n\n\nSTATEMENT IN ENGLISH\n${'='.repeat(60)}\n\n${en}`;
     const blob=new Blob([content],{type:'text/plain;charset=utf-8'});
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a'); a.href=url; a.download=`Declaracion_${name.replace(/\s+/g,'_')}_ES-EN.txt`; a.click();
@@ -3897,6 +4029,21 @@ async function downloadBilingual() {
     btn.textContent='✅ Descargado';
     setTimeout(()=>{btn.textContent='⬇ ES+EN (.txt)';btn.disabled=false;},3000);
   } catch(err){btn.textContent='⚠ Error';btn.disabled=false;showAlert('Error: '+err.message,'error');}
+}
+
+async function translateText(text) {
+  // Simple translation helper
+  const resp = await fetch('/api/claude', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-session-token': _authToken || '' },
+    body: JSON.stringify({
+      model: 'claude-opus-4-7',
+      max_tokens: 16000,
+      messages: [{ role: 'user', content: `Translate this asylum declaration from Spanish to formal English. Preserve paragraph numbering. Return ONLY the translation, no introduction.\n\n${text}` }]
+    })
+  });
+  const d = await resp.json();
+  return (d.content || []).map(i => i.type === 'text' ? i.text : '').join('').trim();
 }
 
 async function downloadWord() {
