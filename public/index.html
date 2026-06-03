@@ -2358,20 +2358,45 @@ function getDateRange() {
 
 async function fetchNews(country, groundEN, dateFrom, dateTo, currentYear, persecutor, attempt = 1, declarationText = '') {
   try {
-    // Build a compact case context (under 400 chars) - no separate AI call to save tokens
+    // STEP 1: Generate compact summary from declaration if available
     let context;
     if (declarationText && declarationText.length > 500) {
-      // Extract first paragraph + key facts from declaration (no AI call)
-      const firstChars = declarationText.slice(0, 1500);
-      // Find persecutor names and organizations mentioned
-      context = firstChars.slice(0, 400);
-    } else {
+      try {
+        const summaryPrompt = `Resume en 5-8 líneas los hechos clave de esta declaración de asilo para buscar artículos de apoyo. Incluye: organizaciones/perseguidores específicos por nombre, eventos clave con fechas si las hay, motivo de persecución, y lugares específicos.
+
+Declaración:
+"""
+${declarationText.slice(0, 20000)}
+"""
+
+Devuelve SOLO el resumen, sin introducción ni explicación. Máximo 600 caracteres.`;
+
+        const sumResp = await fetch('/api/claude', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-session-token': _authToken || '' },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-6',
+            max_tokens: 400,
+            messages: [{ role: 'user', content: summaryPrompt }]
+          })
+        });
+        const sumData = await sumResp.json();
+        if (sumData.content) {
+          context = sumData.content.map(i => i.type === 'text' ? i.text : '').join('').trim().slice(0, 600);
+        }
+      } catch(e) { console.warn('Summary failed, using fallback'); }
+    }
+
+    // Fallback: use raw answers if no summary
+    if (!context) {
       context = [
         answers['persecutors']?.value,
         answers['trigger']?.value,
         answers['organizations']?.value,
-      ].filter(Boolean).join(' | ').slice(0, 400) || `${groundEN} in ${country}`;
+      ].filter(Boolean).join(' | ').slice(0, 600) || `${groundEN} in ${country}`;
     }
+
+    // STEP 2: Search articles using the compact summary
 
     const newsPrompt = `You are a legal research assistant for an immigration law firm.
 Search the web and find 8 real published news articles in ENGLISH about ${country} relevant to asylum based on: ${groundEN}.
