@@ -1991,7 +1991,11 @@ async function generateDeclaration() {
 
   const hasTranscript = transcript.trim().length > 100;
 
+  const todayDate = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+  const currentYearForPrompt = new Date().getFullYear();
   const prompt = `Eres un paralegal experto en asilo I-589 con 20 años de experiencia en cortes de inmigración de EEUU.
+
+FECHA ACTUAL: Hoy es ${todayDate} (año ${currentYearForPrompt}). Esta es la fecha real actual. NO marques fechas anteriores a hoy como "futuras imposibles". Cualquier fecha igual o anterior a ${todayDate} es una fecha válida que ya ocurrió. Solo marca como sospechosa una fecha si es POSTERIOR a ${todayDate}.
 
 REGLA ABSOLUTA: NUNCA inventes información. Si falta algo importante, escribe [PENDIENTE: pregunta específica].
 
@@ -2772,6 +2776,17 @@ function saveCurrentCase(silent = false) {
     transcript,
     generatedData,
     analysisCachedHTML: _analysisCachedHTML || '',
+    // Review tab data
+    reviewText: _reviewText || '',
+    reviewCaseName: _reviewCaseName || '',
+    reviewAnalysis: _reviewAnalysis || null,
+    reviewAnswers: _reviewAnswers ? { ..._reviewAnswers } : {},
+    reviewResultsHTML: _reviewResultsHTML || '',
+    attorneyNotes: _attorneyNotes || '',
+    // Final declaration data
+    finalDeclaration: _finalDeclaration || '',
+    finalSource: _finalSource || '',
+    finalCaseName: _finalCaseName || '',
     savedAt: new Date().toISOString()
   };
   const cases = getCases();
@@ -2800,6 +2815,17 @@ function loadCaseData(c) {
     ? { declarationSnapshot: c.generatedData?.declarationText || '' }
     : null;
   _analysisCachedHTML = c.analysisCachedHTML || '';
+  // Restore Review tab data
+  _reviewText = c.reviewText || '';
+  _reviewCaseName = c.reviewCaseName || '';
+  _reviewAnalysis = c.reviewAnalysis || null;
+  _reviewAnswers = c.reviewAnswers || {};
+  _reviewResultsHTML = c.reviewResultsHTML || '';
+  _attorneyNotes = c.attorneyNotes || '';
+  // Restore Final declaration data
+  _finalDeclaration = c.finalDeclaration || '';
+  _finalSource = c.finalSource || '';
+  _finalCaseName = c.finalCaseName || '';
   closeCases();
   switchTab('questionnaire');
   updateGenerateButton();
@@ -2809,6 +2835,11 @@ function newCase() {
   currentCaseId = null;
   answers = {}; transcript = ''; generatedData = null;
   _analysisCache = null; _analysisCachedHTML = '';
+  // Clear review and final state for new case
+  _reviewText = ''; _reviewCaseName = ''; _reviewAnalysis = null;
+  _reviewAnswers = {}; _reviewResultsHTML = ''; _attorneyNotes = '';
+  _finalDeclaration = ''; _finalSource = ''; _finalCaseName = '';
+  _reviewBillingRecorded = false;
   document.getElementById('caseName').value = '';
   document.getElementById('country').value = 'cuba';
   document.getElementById('customCountry').value = '';
@@ -3024,7 +3055,10 @@ async function reviewDeclaration() {
   }
   btn.disabled=true; btn.textContent='⏳ Analizando...';
   results.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Revisando...</p></div>';
+  const todayDateReview = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
   const reviewPrompt = `Eres un abogado de inmigración con 20 años de experiencia en casos de asilo I-589 ante cortes de EOIR.
+
+FECHA ACTUAL: Hoy es ${todayDateReview}. Esta es la fecha real actual. NO marques fechas anteriores a hoy como "futuras imposibles" o "errores críticos de fecha". Cualquier fecha igual o anterior a ${todayDateReview} es una fecha válida que ya ocurrió. Solo es sospechosa una fecha si es POSTERIOR a ${todayDateReview}.
 
 Analiza esta declaración completa y devuelve ÚNICAMENTE un objeto JSON válido con esta estructura exacta. NO incluyas markdown ni texto adicional.
 
@@ -3100,7 +3134,7 @@ ${_reviewText.substring(0, 60000)}`;
     // Use streaming for large declarations to avoid 504 timeout
     const raw = await callStreaming(
       'claude-opus-4-7',
-      4000,
+      12000,
       [{ role: 'user', content: reviewPrompt }],
       () => { btn.textContent = '⏳ Analizando...'; }
     );
@@ -3462,7 +3496,10 @@ async function improveDeclaration() {
   btn.textContent = '⏳ Mejorando...';
   improveResult.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Aplicando mejoras a la declaración... esto puede tomar 1-2 minutos.</p></div>`;
 
+  const todayDateImprove = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
   const improvePrompt = `Eres un paralegal experto en asilo I-589 con 20 años de experiencia ante cortes de inmigración de EEUU. Mejora y reescribe esta declaración aplicando los estándares reales del BIA (Board of Immigration Appeals).
+
+FECHA ACTUAL: Hoy es ${todayDateImprove}. Esta es la fecha real actual. NO marques fechas anteriores a hoy como "futuras imposibles". Solo es sospechosa una fecha si es POSTERIOR a ${todayDateImprove}.
 
 REGLA ABSOLUTA: NO inventes información nueva. Solo usa los hechos que están en la declaración original y las respuestas proporcionadas por el cliente/abogado.
 
