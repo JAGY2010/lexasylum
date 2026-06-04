@@ -3065,7 +3065,55 @@ Analiza esta declaración completa y devuelve ÚNICAMENTE un objeto JSON válido
 INSTRUCCIONES DE ANÁLISIS:
 - Lee la declaración COMPLETA antes de emitir juicio
 - structureChecks y credibilityChecks: evalúa cada ítem basándote en lo que REALMENTE está en el texto
-- missingQuestions: incluye SOLO las preguntas sobre información que genuinamente FALTA en la declaración y que un juez de inmigración necesitaría. Si la declaración es completa en algún aspecto, no inventes preguntas. Si hay muchas cosas faltantes, incluye todas las necesarias — no hay límite artificial.
+- missingQuestions: incluye SOLO las preguntas sobre información que genuinamente FALTA en la NARRATIVA de la declaración y que un juez de inmigración necesitaría leer. Si la declaración es completa en algún aspecto, no inventes preguntas. Si hay muchas cosas faltantes en la narrativa, incluye todas las necesarias — no hay límite artificial.
+
+  ENFOQUE OBLIGATORIO — SOLO PREGUNTAS DE NARRATIVA:
+  Las preguntas deben enfocarse EXCLUSIVAMENTE en mejorar el texto de la declaración. La declaración es un relato escrito, no un checklist de evidencia documental. La evidencia (fotos, cartas, reportes, certificados) se adjunta por separado al I-589 — NO es parte de la declaración escrita.
+
+  NO INCLUYAS PREGUNTAS SOBRE:
+  - "¿Tiene fotografías?" — la evidencia visual va aparte
+  - "¿Tiene cartas de apoyo de testigos?" — los affidavits van aparte
+  - "¿Tiene documentos de membresía?" — los carnets van aparte
+  - "¿Tiene reportes de organismos como HRW, CIDH?" — esos los busca el abogado o la app
+  - "¿Tiene reportes médicos o forenses?" — la evidencia médica va aparte
+  - "¿Tiene fotografías de cicatrices?" — la documentación física va aparte
+  - "¿Considere petición paralela I-130?" — eso es estrategia legal del abogado, no parte de la declaración
+  - "¿Considere otra vía de protección?" — eso es estrategia del abogado
+  - Cualquier pregunta cuya respuesta sea "¿tiene X documento sí o no?"
+  - Cualquier pregunta sobre estrategia procesal o vías alternativas de inmigración
+
+  SÍ INCLUYE PREGUNTAS SOBRE:
+  - Eventos no narrados o que requieren más detalle (qué pasó, cuándo, dónde, quién, cómo)
+  - Palabras textuales que faltan (qué dijo exactamente el persecutor)
+  - Descripciones físicas faltantes (cómo era el agresor, el lugar, el ambiente)
+  - Nexos causales no establecidos (por qué cree que lo atacaron a usted específicamente)
+  - Inconsistencias cronológicas (educación, fechas, ubicaciones)
+  - Gaps temporales sin explicar (qué ocurrió en ese período)
+  - Razones por las que no hizo algo (por qué no denunció, por qué no se mudó, por qué no buscó ayuda)
+  - Información sobre familiares mencionados en el relato (situación actual, si están en peligro, dónde viven)
+  - Detalles emocionales/psicológicos relevantes (cómo se sintió, qué impacto tuvo)
+  - Aclaraciones sobre eventos confusos o contradictorios
+  - Información sobre la ruta de viaje (fechas, ubicaciones, dónde se hospedó)
+  - Por qué eligió este país y no otro
+  - Por qué no puede regresar (situación actual del país, riesgo concreto)
+
+  PRINCIPIO RECTOR: Pregunta "¿qué le falta SABER al juez al LEER la declaración?" — no "¿qué documentos faltan en el expediente?".
+
+  VERIFICACIÓN OBLIGATORIA ANTES DE INCLUIR CADA PREGUNTA:
+  Antes de incluir CUALQUIER pregunta en missingQuestions, DEBES verificar línea por línea que la respuesta NO esté en la declaración. Sigue este procedimiento para cada pregunta candidata:
+  1. Identifica el tema de la pregunta (ej: "atención médica después de la golpiza")
+  2. Lee TODOS los párrafos de la declaración buscando información sobre ese tema
+  3. Si la información YA está respondida en cualquier párrafo → NO incluyas esa pregunta. Está respondida.
+  4. Solo si después de revisar TODA la declaración no encuentras la información → incluye la pregunta
+
+  EJEMPLOS DE QUÉ NO PREGUNTAR (información ya respondida típicamente en declaraciones):
+  - Si la declaración dice "no acudí al hospital porque tenía miedo" → NO preguntes "¿Por qué no buscó atención médica?"
+  - Si dice "regresé a mi casa caminando" → NO preguntes "¿Cómo regresó del lugar?"
+  - Si menciona el nombre de un testigo → NO preguntes "¿Quién puede ser testigo?"
+  - Si describe físicamente al agresor → NO preguntes "¿Cómo era físicamente el agresor?"
+  - Si da una fecha exacta → NO preguntes "¿Cuándo ocurrió?"
+
+  Las observaciones sobre evidencia documental, estrategia legal o vías alternativas (I-130, withholding, CAT) deben ir en improvementPriority, NO en missingQuestions.
 - improvementPriority: las mejoras más críticas primero, basadas en los estándares BIA
 - legalNote: observación legal específica sobre la fortaleza o debilidad principal del nexo causal
 
@@ -3161,7 +3209,7 @@ ${_reviewText.substring(0, 60000)}`;
             <textarea id="review-answer-${i}"
               rows="2"
               placeholder="Respuesta del cliente..."
-              oninput="_reviewAnswers[${i}]=this.value"
+              oninput="_reviewAnswers[${i}]=this.value;autoSave()"
               style="width:100%;background:var(--cream);border:1px solid var(--border);border-radius:7px;padding:8px 10px;font-family:'Source Sans 3',sans-serif;font-size:13px;resize:vertical;outline:none;color:var(--text)">${escHtml(_reviewAnswers[i]||'')}</textarea>
           </div>`).join('')}
       </div>` : '';
@@ -3188,7 +3236,7 @@ ${_reviewText.substring(0, 60000)}`;
           <label style="display:block;font-size:11px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">📝 Observaciones e instrucciones del abogado (opcional)</label>
           <textarea id="attorneyNotes"
             placeholder="Escriba aquí cualquier corrección, observación o instrucción específica que quiera que la IA aplique al mejorar la declaración. Por ejemplo: 'Enfatizar más el nexo entre el acoso del policía y la opinión política', 'El cliente nunca trabajó como cajera, corregir', 'Agregar que el cliente tiene hijos en EE.UU.', etc."
-            oninput="_attorneyNotes=this.value"
+            oninput="_attorneyNotes=this.value;autoSave()"
             style="width:100%;min-height:120px;background:white;border:1.5px solid var(--border);border-radius:8px;padding:12px;font-family:'Source Sans 3',sans-serif;font-size:13px;line-height:1.7;color:var(--text);resize:vertical;outline:none">${escHtml(_attorneyNotes||'')}</textarea>
           <div style="font-size:11px;color:var(--muted);margin-top:6px">La IA tomará estas observaciones como instrucciones prioritarias al reescribir la declaración.</div>
         </div>
