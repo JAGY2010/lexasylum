@@ -27,10 +27,10 @@ function generateToken() {
 // In-memory session store (sufficient for small user base)
 const sessions = new Map();
 
-function createSession(userId, firmId, role, name) {
+function createSession(userId, firmId, role, name, email) {
   const token = generateToken();
   sessions.set(token, {
-    userId, firmId, role, name,
+    userId, firmId, role, name, email,
     createdAt: Date.now(),
     expiresAt: Date.now() + 8 * 60 * 60 * 1000 // 8 hours
   });
@@ -143,8 +143,16 @@ async function initDB() {
         ground_type TEXT DEFAULT '',
         data JSONB NOT NULL DEFAULT '{}',
         saved_at TIMESTAMPTZ DEFAULT NOW(),
-        updated_at TIMESTAMPTZ DEFAULT NOW()
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        deleted_at TIMESTAMPTZ DEFAULT NULL,
+        deleted_by_user_id INTEGER REFERENCES users(id) DEFAULT NULL,
+        deleted_by_email TEXT DEFAULT NULL
       );
+
+      -- Migration: add soft-delete columns if they don't exist (for existing databases)
+      ALTER TABLE cases ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+      ALTER TABLE cases ADD COLUMN IF NOT EXISTS deleted_by_user_id INTEGER REFERENCES users(id) DEFAULT NULL;
+      ALTER TABLE cases ADD COLUMN IF NOT EXISTS deleted_by_email TEXT DEFAULT NULL;
 
       CREATE TABLE IF NOT EXISTS firm_billing (
         id SERIAL PRIMARY KEY,
@@ -246,7 +254,7 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ error: 'Credenciales incorrectas' });
     }
 
-    const token = createSession(user.id, user.firm_id, user.role, user.name);
+    const token = createSession(user.id, user.firm_id, user.role, user.name, user.email);
 
     res.json({
       token,
@@ -319,26 +327,48 @@ app.get('/api/auth/me', requireAuth, async (req, res) => {
 // ── CASES ENDPOINTS ──────────────────────────────────────────────────────────
 
 // Get cases (user sees own, firm_admin sees firm, superadmin sees all)
+// By default excludes soft-deleted cases. Superadmin can pass ?showDeleted=true
 app.get('/api/cases', requireAuth, async (req, res) => {
   try {
+    const showDeleted = req.query.showDeleted === 'true' && req.session.role === 'superadmin';
+    const deletedFilter = showDeleted ? '' : 'AND c.deleted_at IS NULL';
+
     let query, params;
     if (req.session.role === 'superadmin') {
       query = `SELECT c.*, u.name as user_name, f.name as firm_name
                FROM cases c JOIN users u ON c.user_id = u.id JOIN firms f ON c.firm_id = f.id
+               WHERE 1=1 ${deletedFilter}
                ORDER BY c.updated_at DESC`;
       params = [];
     } else if (req.session.role === 'firm_admin') {
       query = `SELECT c.*, u.name as user_name, f.name as firm_name
                FROM cases c JOIN users u ON c.user_id = u.id JOIN firms f ON c.firm_id = f.id
-               WHERE c.firm_id = $1 ORDER BY c.updated_at DESC`;
+               WHERE c.firm_id = $1 AND c.deleted_at IS NULL ORDER BY c.updated_at DESC`;
       params = [req.session.firmId];
     } else {
       query = `SELECT c.*, u.name as user_name, f.name as firm_name
                FROM cases c JOIN users u ON c.user_id = u.id JOIN firms f ON c.firm_id = f.id
-               WHERE c.user_id = $1 ORDER BY c.updated_at DESC`;
+               WHERE c.user_id = $1 AND c.deleted_at IS NULL ORDER BY c.updated_at DESC`;
       params = [req.session.userId];
     }
     const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get deleted cases (superadmin only)
+app.get('/api/admin/deleted-cases', requireSuperAdmin, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT c.*, u.name as user_name, u.email as user_email, f.name as firm_name
+      FROM cases c
+      JOIN users u ON c.user_id = u.id
+      JOIN firms f ON c.firm_id = f.id
+      WHERE c.deleted_at IS NOT NULL
+      ORDER BY c.deleted_at DESC
+    `);
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -369,9 +399,11 @@ app.post('/api/cases', requireAuth, async (req, res) => {
 });
 
 // Delete case
+// Default behavior: soft delete (marks deleted_at) — case disappears from user/firm_admin lists
+// Superadmin can pass ?permanent=true to permanently delete from database
 app.delete('/api/cases/:id', requireAuth, async (req, res) => {
   try {
-    const check = await pool.query('SELECT user_id, firm_id FROM cases WHERE id = $1', [req.params.id]);
+    const check = await pool.query('SELECT user_id, firm_id, deleted_at FROM cases WHERE id = $1', [req.params.id]);
     if (check.rows.length === 0) return res.status(404).json({ error: 'Caso no encontrado' });
 
     const c = check.rows[0];
@@ -381,7 +413,34 @@ app.delete('/api/cases/:id', requireAuth, async (req, res) => {
 
     if (!canDelete) return res.status(403).json({ error: 'Sin permiso' });
 
-    await pool.query('DELETE FROM cases WHERE id = $1', [req.params.id]);
+    const permanent = req.query.permanent === 'true' && req.session.role === 'superadmin';
+
+    if (permanent) {
+      // Permanent delete — only superadmin can do this
+      await pool.query('DELETE FROM cases WHERE id = $1', [req.params.id]);
+      res.json({ ok: true, permanent: true });
+    } else {
+      // Soft delete — mark as deleted but keep in database
+      await pool.query(
+        `UPDATE cases SET deleted_at = NOW(), deleted_by_user_id = $1, deleted_by_email = $2 WHERE id = $3`,
+        [req.session.userId, req.session.email || '', req.params.id]
+      );
+      res.json({ ok: true, soft: true });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Restore soft-deleted case (superadmin only)
+app.post('/api/admin/cases/:id/restore', requireSuperAdmin, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `UPDATE cases SET deleted_at = NULL, deleted_by_user_id = NULL, deleted_by_email = NULL
+       WHERE id = $1 AND deleted_at IS NOT NULL RETURNING id`,
+      [req.params.id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Caso eliminado no encontrado' });
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
