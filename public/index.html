@@ -41,6 +41,7 @@
       <button class="admin-tab" onclick="adminTab('firms')">🏢 Firmas</button>
       <button class="admin-tab" onclick="adminTab('users')">👤 Usuarios</button>
       <button class="admin-tab" onclick="adminTab('billing')">💰 Facturación</button>
+      <button class="admin-tab" onclick="adminTab('deleted')">🗑️ Casos Eliminados</button>
       <button class="admin-tab" onclick="adminTab('account')">🔑 Mi Cuenta</button>
     </div>
 
@@ -94,6 +95,17 @@
     <!-- Billing -->
     <div id="admin-billing" class="admin-section">
       <div id="billingContent">
+        <div class="loading-state"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- Deleted Cases (superadmin only) -->
+    <div id="admin-deleted" class="admin-section">
+      <h3 style="margin-bottom:16px">🗑️ Casos Eliminados por Usuarios</h3>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px">
+        Estos casos fueron eliminados por preparadores o administradores de firma. Puedes restaurarlos (devolverlos al usuario) o eliminarlos permanentemente de la base de datos.
+      </p>
+      <div id="deletedCasesList">
         <div class="loading-state"><div class="spinner"></div></div>
       </div>
     </div>
@@ -380,9 +392,100 @@ function closeAdminPanel() {
 }
 
 function adminTab(tab) {
-  document.querySelectorAll('.admin-tab').forEach((t,i) => t.classList.toggle('active', ['dashboard','firms','users','billing','account'][i]===tab));
+  document.querySelectorAll('.admin-tab').forEach((t,i) => t.classList.toggle('active', ['dashboard','firms','users','billing','deleted','account'][i]===tab));
   document.querySelectorAll('.admin-section').forEach(s => s.classList.toggle('active', s.id === 'admin-'+tab));
   if (tab === 'billing') loadBilling();
+  if (tab === 'deleted') loadDeletedCases();
+}
+
+async function loadDeletedCases() {
+  const el = document.getElementById('deletedCasesList');
+  el.innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
+  try {
+    const res = await authFetch('/api/admin/deleted-cases');
+    if (!res.ok) {
+      el.innerHTML = '<p style="color:var(--danger)">Error al cargar casos eliminados.</p>';
+      return;
+    }
+    const cases = await res.json();
+    if (!Array.isArray(cases) || cases.length === 0) {
+      el.innerHTML = '<p style="font-size:14px;color:var(--muted);padding:20px;text-align:center">No hay casos eliminados.</p>';
+      return;
+    }
+
+    let html = '<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:var(--bg-2);text-align:left">';
+    html += '<th style="padding:10px;border-bottom:2px solid var(--border)">Caso</th>';
+    html += '<th style="padding:10px;border-bottom:2px solid var(--border)">Firma</th>';
+    html += '<th style="padding:10px;border-bottom:2px solid var(--border)">Eliminado por</th>';
+    html += '<th style="padding:10px;border-bottom:2px solid var(--border)">Fecha</th>';
+    html += '<th style="padding:10px;border-bottom:2px solid var(--border)">Acciones</th>';
+    html += '</tr></thead><tbody>';
+
+    cases.forEach(c => {
+      const deletedDate = c.deleted_at ? new Date(c.deleted_at).toLocaleString('es-ES') : '—';
+      const deletedBy = c.deleted_by_email || '—';
+      html += `<tr style="border-bottom:1px solid var(--border)">
+        <td style="padding:10px"><strong>${escapeHTML(c.name||'Sin nombre')}</strong><br><span style="font-size:11px;color:var(--muted)">${escapeHTML(c.country||'')}</span></td>
+        <td style="padding:10px">${escapeHTML(c.firm_name||'—')}</td>
+        <td style="padding:10px">${escapeHTML(deletedBy)}</td>
+        <td style="padding:10px;font-size:12px">${deletedDate}</td>
+        <td style="padding:10px">
+          <button class="admin-btn-sm success" style="margin-right:6px;font-size:12px;padding:6px 10px" onclick="restoreDeletedCase('${escapeAttr(c.id)}', '${escapeAttr(c.name||'')}')">🔄 Restaurar</button>
+          <button class="admin-btn-sm danger" style="font-size:12px;padding:6px 10px" onclick="permanentDeleteCase('${escapeAttr(c.id)}', '${escapeAttr(c.name||'')}')">❌ Eliminar Permanentemente</button>
+        </td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    el.innerHTML = html;
+  } catch (err) {
+    el.innerHTML = `<p style="color:var(--danger)">Error: ${escapeHTML(err.message)}</p>`;
+  }
+}
+
+function escapeHTML(s) {
+  if (s == null) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escapeAttr(s) {
+  if (s == null) return '';
+  return String(s).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
+async function restoreDeletedCase(caseId, caseName) {
+  if (!confirm(`¿Restaurar el caso "${caseName}"?\n\nEl caso volverá a aparecer en la lista del usuario.`)) return;
+  try {
+    const res = await authFetch(`/api/admin/cases/${encodeURIComponent(caseId)}/restore`, { method: 'POST' });
+    if (res.ok) {
+      showAlert('✅ Caso restaurado', 'info');
+      loadDeletedCases();
+    } else {
+      const err = await res.json();
+      showAlert('Error: ' + (err.error || 'No se pudo restaurar'), 'error');
+    }
+  } catch (e) {
+    showAlert('Error: ' + e.message, 'error');
+  }
+}
+
+async function permanentDeleteCase(caseId, caseName) {
+  const typed = prompt(`⚠️ ELIMINACIÓN PERMANENTE\n\nEstás a punto de eliminar PERMANENTEMENTE el caso "${caseName}" de la base de datos. Esta acción NO se puede deshacer.\n\nPara confirmar, escribe la palabra ELIMINAR (en mayúsculas) y presiona OK:`);
+  if (typed === null) return;
+  if (typed !== 'ELIMINAR') {
+    alert('Confirmación incorrecta. Debías escribir exactamente "ELIMINAR". No se eliminó nada.');
+    return;
+  }
+  try {
+    const res = await authFetch(`/api/cases/${encodeURIComponent(caseId)}?permanent=true`, { method: 'DELETE' });
+    if (res.ok) {
+      showAlert('🗑️ Caso eliminado permanentemente', 'info');
+      loadDeletedCases();
+    } else {
+      const err = await res.json();
+      showAlert('Error: ' + (err.error || 'No se pudo eliminar'), 'error');
+    }
+  } catch (e) {
+    showAlert('Error: ' + e.message, 'error');
+  }
 }
 
 async function loadBilling() {
@@ -2128,6 +2231,111 @@ Redacta una declaración formal I-589 en español, primera persona, párrafos nu
 
 LONGITUD: La declaración debe ser tan extensa como sea necesario para cubrir TODOS los hechos relevantes que el cliente proporcionó. No hay límite artificial de párrafos. Usa entre 60 y 150+ párrafos según la complejidad del caso. NUNCA recortes información para acortar la declaración. Si tienes muchos eventos, ruta de viaje compleja, persecución de familiares, o detalles importantes, escríbelos todos completos.
 
+═══ CONTEXTO ACTUAL DE PAÍSES (actualizado a junio 2026) ═══
+
+Cuando el caso sea de uno de los siguientes países, considera estos hechos verificados al construir la narrativa. Solo úsalos si son relevantes al caso del cliente y al motivo de persecución (no fuerces información sin contexto):
+
+NICARAGUA:
+- Cancelación de personería jurídica de YATAMA por el Consejo Supremo Electoral el 4 de octubre de 2023
+- Detención arbitraria de Brooklyn Rivera el 29 de septiembre de 2023 en Bilwi/Puerto Cabezas
+- Muerte de Brooklyn Rivera el 30 de mayo de 2026 bajo custodia estatal, tras 970+ días de detención incomunicada
+- También detenida: Nancy Henríquez James (vicepresidenta de YATAMA)
+- Marzo 2026: Grupo de Expertos ONU (GHREN) describe la represión como "crímenes contra la humanidad"
+- 75 desaparecidos forzados documentados (60 hombres, 15 mujeres) por GHREN
+- 124 detenciones arbitrarias de líderes indígenas entre 2018-2024
+- Persecución continúa contra miskitos, opositores azul y blanco, sacerdotes católicos, periodistas
+
+CUBA:
+- Protestas masivas del 11J (11 de julio de 2021): más de 5,000 arrestos, 1,500 procesos penales
+- Más de 1,200 presos políticos según Prisoners Defenders (febrero 2026)
+- 2 de abril de 2026: gobierno "liberó" 2,010 prisioneros pero EXCLUYÓ a presos políticos
+- Marzo 2026: nuevas protestas en Morón, Ciego de Ávila por apagones y escasez → 85 arrestos incluyendo adolescentes
+- Octubre 2025: José Daniel Ferrer (líder UNPACU) forzado al exilio en Miami tras tortura
+- Presos políticos emblemáticos aún detenidos: Luis Manuel Otero Alcántara, Maykel Castillo Pérez (Osorbo), Félix Navarro Rodríguez, Saily Navarro, Loreto Hernández García
+- Marzo 2026: Leonard Richard González Alfonso sentenciado a 7 años por pintar "¿Hasta cuándo?" en una pared
+
+VENEZUELA:
+- Elecciones presidenciales 28 julio 2024: Edmundo González Urrutia ganó (7M+ votos) pero Maduro reclamó victoria fraudulentamente
+- 3 de enero de 2026: intervención militar de EE.UU. en Venezuela; Maduro capturado y trasladado a Nueva York
+- Delcy Rodríguez asume como presidenta interina
+- María Corina Machado recibió Premio Nobel de la Paz 2025
+- Enero 2026 en adelante: liberación gradual de presos políticos (621 liberados de 800+ según Foro Penal)
+- Persecución 2024-2025 fue intensa contra opositores, periodistas, activistas (más de 800 presos políticos)
+- IMPORTANTE: la situación cambió en enero 2026, pero opositores que huyeron antes siguen teniendo temor fundado porque la transición es frágil y muchos perseguidores siguen libres
+
+HAITÍ:
+- Asesinato del presidente Jovenel Moïse en julio 2021 (sin presidente electo desde entonces)
+- Pandillas controlan aproximadamente 90% de Puerto Príncipe y se expanden al norte (Artibonite, Centre)
+- 8,100+ homicidios entre enero-noviembre 2025 según ONU
+- Más de 16,000 muertes documentadas desde enero 2022
+- 1.45 millones de desplazados internos (febrero 2026)
+- 300+ grupos criminales activos, 270,000-500,000 armas ilegales en circulación
+- Pandillas principales: Viv Ansanm, G9, Gran Grif
+- Violencia sexual masiva (1,270 casos documentados enero-septiembre 2025)
+- Abril 2026: llegada de "Gang Suppression Force" autorizada por ONU
+- Elecciones programadas para agosto 2026 (sujetas a mejora de seguridad)
+- 6.4 millones de personas necesitan asistencia humanitaria
+
+EL SALVADOR:
+- Régimen de excepción desde 27 marzo 2022 (extendido más de 48 veces hasta 2026)
+- Más de 91,000 personas arrestadas (más del 1% de la población)
+- Población carcelaria estimada en 118,000 (más del doble de la capacidad)
+- Detenciones arbitrarias masivas, tortura, desapariciones forzadas, mass trials
+- Al menos 350 muertes documentadas bajo custodia
+- Julio 2024: reforma constitucional para reelección indefinida de Bukele
+- 2025: introducción de la cadena perpetua
+- IACHR ha emitido medidas precautorias (septiembre 2025) para defensores Ruth López y Enrique Anaya
+- Periodistas y defensores de derechos humanos en exilio forzado
+- Sin debido proceso, sin acceso a abogados, basado en apariencia/tatuajes/denuncias anónimas
+
+COLOMBIA:
+- Política de "Paz Total" del presidente Gustavo Petro (2022-2026) fracasó: grupos armados se fortalecieron
+- ELN (Ejército de Liberación Nacional) fortalecido: 6,810 miembros (+9% en 2025)
+- Disidencias FARC en dos facciones principales: Estado Mayor Central (EMC) liderado por "Iván Mordisco" y Segunda Marquetalia
+- Clan del Golfo (AGC) sigue activo
+- Enero 2025: ofensiva del ELN en Catatumbo: 80+ muertes, mayormente civiles; gobierno declaró emergencia 90 días
+- ELN ataca líderes sociales, ex-combatientes FARC, civiles percibidos como afiliados a disidencias
+- Tasa de homicidio en 25-26 por 100,000 (alta para Latinoamérica)
+- Reclutamiento forzado de menores y extorsión en aumento
+- Elecciones legislativas marzo 2026, presidenciales mayo 2026
+
+HONDURAS:
+- Régimen de Excepción desde 6 diciembre 2022 bajo Xiomara Castro
+- Crackdown contra pandillas MS-13 y Barrio 18
+- 21 mayo 2026: masacre en Rigores, Trujillo, Colón: 19 muertos
+- 3,030 homicidios en 2023
+- Extorsión sistemática ("la renta") contra negocios y comunidades
+- Marzo 2024: ex-presidente Juan Orlando Hernández condenado en NY por narcotráfico
+- Migración forzada masiva por violencia, extorsión, desastres climáticos
+
+GUATEMALA:
+- Presidente Bernardo Arévalo (asumió 2024 tras crisis política para detener su transición)
+- 17 enero 2026: levantamientos coordinados en tres prisiones, 46 guardias tomados como rehenes
+- 18 enero 2026: Arévalo declaró estado de sitio de 30 días tras asesinato de 7 policías por pandillas
+- 12 febrero 2026: periodista José Rubén Zamora bajo arresto domiciliario
+- Pandillas y narcotráfico controlan zonas urbanas y rurales
+- Persecución contra periodistas, defensores indígenas (especialmente Maya, líderes territoriales)
+- Tribunales aún utilizan acusaciones políticas contra opositores y críticos
+- Mediados de 2026: elecciones judiciales
+
+MÉXICO:
+- 22 febrero 2026: violencia masiva tras operativo militar contra CJNG (Cartel Jalisco Nueva Generación) en Jalisco
+- Bloqueos, incendios, ataques en 23 municipios de Guanajuato
+- 50 sucursales Banco del Bienestar dañadas, 200+ tiendas Oxxo
+- 25 miembros Guardia Nacional asesinados; 32+ cartel muertos
+- Asesinatos de periodistas, defensores ambientales, líderes indígenas (zapatistas, comunitarios)
+- Desplazamiento forzado interno en Guerrero, Michoacán, Chiapas, Chihuahua
+- Presidenta Claudia Sheinbaum continúa estrategia de seguridad
+
+REGLAS PARA USAR ESTE CONTEXTO:
+- Si el cliente menciona un evento o persona específica que coincide con este contexto, intégralo como evidencia de respaldo
+- NO inventes detalles que el cliente no mencionó
+- NO uses este contexto como sustituto de los hechos del cliente — son complementarios
+- Si el cliente no menciona nada relacionado con este contexto, NO lo fuerces en la narrativa
+- Si hay actualizaciones (ej: muerte de Brooklyn Rivera) que el cliente puede no conocer aún, el sistema de revisión preguntará al cliente sobre estos eventos para reforzar el temor futuro fundado
+
+═══ FIN CONTEXTO ACTUAL DE PAÍSES ═══
+
 REGLA DEL PÁRRAFO 1 — OBLIGATORIA:
 El párrafo 1 debe ser SIEMPRE corto: contiene únicamente nombre completo, fecha de nacimiento y lugar de nacimiento. NO agregues resumen del caso, motivos protegidos, etnia, afiliación política, ni frase de "presento esta declaración en apoyo a mi solicitud de asilo". Esa información va en párrafos posteriores donde corresponde naturalmente. Estructura exacta esperada:
 
@@ -2541,8 +2749,16 @@ Search the web and find 8 real published news articles in ENGLISH about ${countr
 
 CASE CONTEXT: ${context}
 
-PERIOD 1 — HISTORICAL (${dateFrom}-${dateTo}): 4 articles documenting conditions during the client's events.
-PERIOD 2 — CURRENT (${currentYear-1}-${currentYear}): 4 RECENT articles showing the situation has NOT improved.
+SEARCH STRATEGY:
+- PRIORITY: All 8 articles should be CURRENT (${currentYear-1}-${currentYear}), documenting the present situation in ${country} and showing that persecution risks remain active. This reinforces the client's well-founded fear of future persecution.
+- EXCEPTION FOR HISTORICAL ARTICLES: You may include older articles (pre-${currentYear-1}) ONLY if they document SPECIFIC events that the client explicitly narrates in their declaration. Examples of valid exceptions:
+  * Named political assassinations the client mentions (e.g., "the assassination of Mario Leman in September 2015")
+  * Specific protests the client participated in with concrete dates (e.g., "April 2018 protests")
+  * Specific laws, decrees, or government measures the client references
+  * Named massacres, raids, or major incidents the client witnessed or describes
+  * Detentions of specific leaders mentioned in the declaration
+- If the client's declaration does NOT mention specific historical events that justify older articles, ALL 8 articles must be current (${currentYear-1}-${currentYear}).
+- Goal: balance between (a) showing current ongoing risk and (b) documenting specific past events the client narrates.
 
 Priority sources: OSAC, U.S. State Department Human Rights Reports, Human Rights Watch, Amnesty International, Freedom House, major news (CNN, Reuters, BBC, AP).
 
@@ -2550,8 +2766,8 @@ Focus on: political repression, human rights abuses, arbitrary detention, persec
 
 IMPORTANT: After completing your web searches, you MUST output the final JSON array. Do not stop after searching — you must write the JSON response.
 
-Return ONLY a JSON array, no markdown:
-[{"title":"...","source":"...","date":"...","url":"https://...","summary":"Brief attorney summary","relevance":"Legal element supported","period":"historical or current"}]`;
+Return ONLY a JSON array, no markdown. Mark each article's period correctly ("current" for ${currentYear-1}-${currentYear}, "historical" only for older articles documenting specific client-narrated events):
+[{"title":"...","source":"...","date":"...","url":"https://...","summary":"Brief attorney summary","relevance":"Legal element supported","period":"current or historical"}]`;
 
     const resp = await fetch('/api/claude', {
       method: 'POST',
@@ -2914,11 +3130,18 @@ function closeCases() { document.getElementById('casesOverlay').classList.remove
 function closeCasesIfOutside(e) { if (e.target === document.getElementById('casesOverlay')) closeCases(); }
 function deleteCase(i) {
   const cases = getCases();
-  const caseId = cases[i]?.id;
+  const caseData = cases[i];
+  if (!caseData) return;
+
+  const caseName = caseData.name || 'Sin nombre';
+  if (!confirm(`¿Está seguro de eliminar el caso "${caseName}"?\n\nEl caso desaparecerá de su lista.`)) return;
+
+  const caseId = caseData.id;
   cases.splice(i, 1);
   saveCasesToStorage(cases);
   if (_authToken && caseId) deleteCaseFromServer(caseId);
   openCases();
+  showAlert('🗑️ Caso eliminado de su lista', 'info');
 }
 
 // ─── REVIEW ───────────────────────────────────────────────────────────────────
@@ -3068,6 +3291,93 @@ async function reviewDeclaration() {
 FECHA ACTUAL: Hoy es ${todayDateReview}. Esta es la fecha real actual. NO marques fechas anteriores a hoy como "futuras imposibles" o "errores críticos de fecha". Cualquier fecha igual o anterior a ${todayDateReview} es una fecha válida que ya ocurrió. Solo es sospechosa una fecha si es POSTERIOR a ${todayDateReview}.
 
 Analiza esta declaración completa y devuelve ÚNICAMENTE un objeto JSON válido con esta estructura exacta. NO incluyas markdown ni texto adicional.
+
+═══ CONTEXTO ACTUAL DE PAÍSES (actualizado a junio 2026) ═══
+
+Considera estos hechos verificados al generar preguntas pendientes. Si el cliente menciona el país pero NO menciona un evento relevante reciente, GENERA UNA PREGUNTA sobre ese evento para reforzar el temor futuro fundado:
+
+NICARAGUA:
+- Muerte de Brooklyn Rivera (líder histórico YATAMA) bajo custodia el 30 de mayo de 2026 tras 970+ días detenido
+- Cancelación de personería jurídica de YATAMA el 4 de octubre de 2023
+- Nancy Henríquez James también detenida
+- Marzo 2026: ONU declaró represión como "crímenes contra la humanidad"
+- 75 desaparecidos forzados documentados, 124 detenciones arbitrarias de líderes indígenas 2018-2024
+- Si el cliente menciona YATAMA, miskito, o protestas azul y blanco → preguntar si conoce estos eventos recientes
+
+CUBA:
+- Protestas del 11J (11 de julio de 2021): 5,000+ arrestos, 1,500 procesos penales
+- Más de 1,200 presos políticos (febrero 2026)
+- 2 de abril de 2026: gobierno liberó 2,010 prisioneros pero NO presos políticos
+- Marzo 2026: nuevas protestas en Morón, Ciego de Ávila por apagones → 85 arrestos
+- Octubre 2025: José Daniel Ferrer (UNPACU) forzado al exilio en Miami
+- Presos políticos emblemáticos: Luis Manuel Otero Alcántara, Maykel Castillo (Osorbo), Félix Navarro, Saily Navarro
+- Si el cliente menciona Cuba, opinión política, 11J, UNPACU → preguntar sobre conocimiento de estos casos
+
+VENEZUELA:
+- Elecciones 28 julio 2024: Edmundo González ganó pero Maduro reclamó fraudulentamente
+- 3 enero 2026: EE.UU. intervino militarmente, Maduro capturado y llevado a NY
+- Delcy Rodríguez es presidenta interina
+- María Corina Machado: Premio Nobel de Paz 2025
+- Liberación gradual de presos políticos desde enero 2026 (621 de 800+)
+- Si el cliente huyó antes de enero 2026 → su temor sigue siendo fundado por transición frágil; perseguidores siguen libres
+- Si el cliente es ex-militar, ex-funcionario chavista que se rebeló, periodista, opositor → preguntar sobre persecución continuada
+
+HAITÍ:
+- Pandillas controlan 90% de Puerto Príncipe; expansión a norte (Artibonite, Centre)
+- Más de 16,000 muertes desde enero 2022
+- Más de 8,100 muertes solo enero-noviembre 2025
+- 1.45 millones desplazados internos
+- Pandillas: Viv Ansanm, G9, Gran Grif
+- 1,270 casos violencia sexual documentados enero-septiembre 2025
+- Sin presidente electo desde asesinato de Jovenel Moïse (julio 2021)
+- Si el cliente menciona pandillas, secuestro, violencia sexual, persecución por género → preguntar sobre evento específico y conexión al motivo protegido
+
+EL SALVADOR:
+- Régimen de excepción desde marzo 2022 (extendido 48+ veces)
+- Más de 91,000 arrestados, 118,000 en cárceles (más del doble de capacidad)
+- 350+ muertes documentadas bajo custodia
+- Julio 2024: reforma constitucional reelección indefinida Bukele
+- Defensores Ruth López y Enrique Anaya detenidos
+- Periodistas y defensores DDHH en exilio forzado
+- Si el cliente fue detenido arbitrariamente, tatuajes, denuncia anónima, sin debido proceso → preguntar detalles específicos
+
+COLOMBIA:
+- ELN: 6,810 miembros (+9% en 2025)
+- Disidencias FARC: Estado Mayor Central (Iván Mordisco) y Segunda Marquetalia
+- Clan del Golfo (AGC) activo
+- Enero 2025: ofensiva ELN en Catatumbo, 80+ muertes mayormente civiles
+- ELN ataca líderes sociales, ex-FARC, civiles
+- Si el cliente menciona ELN, FARC dissidents, Clan del Golfo, líder social, ex-combatiente → preguntar zona específica, fechas, modus operandi
+
+HONDURAS:
+- Régimen de Excepción desde diciembre 2022
+- Mayo 2026: masacre Rigores, Trujillo: 19 muertos
+- MS-13 y Barrio 18 activas
+- Extorsión sistemática ("la renta")
+- Marzo 2024: ex-presidente Juan Orlando Hernández condenado en NY por narcotráfico
+- Si el cliente menciona pandillas, extorsión, persecución por testigo, periodista → preguntar detalles específicos
+
+GUATEMALA:
+- Enero 2026: levantamientos en 3 prisiones, 46 guardias rehenes; Arévalo declaró estado de sitio
+- Periodista José Rubén Zamora bajo arresto domiciliario
+- Persecución a periodistas, defensores indígenas Maya, líderes territoriales
+- Si el cliente menciona persecución política reciente, defensor indígena, periodista → preguntar detalles
+
+MÉXICO:
+- 22 febrero 2026: violencia masiva tras operativo contra CJNG en Jalisco
+- Bloqueos, incendios, ataques en 23 municipios Guanajuato
+- Asesinatos de periodistas, defensores ambientales, líderes indígenas, comunitarios
+- Desplazamiento interno en Guerrero, Michoacán, Chiapas, Chihuahua
+- Si el cliente menciona cartel, CJNG, periodista, defensor ambiental, indígena → preguntar zona, fechas, perpetradores
+
+REGLAS PARA USAR ESTE CONTEXTO EN PREGUNTAS:
+- Si el cliente menciona un partido/movimiento/grupo armado pero NO líderes específicos → preguntar "¿Conocía personalmente a líderes de [grupo]?"
+- Si el cliente menciona el país pero NO eventos recientes relevantes → preguntar "¿Conoce [evento específico verificado]? ¿Cómo le afecta?"
+- Si el cliente tiene hijos/familiares menores en/desde el país → preguntar sobre discriminación o riesgo específico
+- Si el cliente tiene historia de persecución familiar generacional → preguntar por persona específica, ubicación actual, vínculo
+- Solo usa este contexto cuando aplica al caso. NO menciones eventos no relacionados con el motivo de persecución del cliente.
+
+═══ FIN CONTEXTO ACTUAL DE PAÍSES ═══
 
 INSTRUCCIONES DE ANÁLISIS:
 - Lee la declaración COMPLETA antes de emitir juicio
