@@ -911,6 +911,116 @@ function getAdaptiveSections() {
     ]
   };
 
+  // ── GANGS (El Salvador, Honduras, Guatemala, México) ────────────────────────
+  const s6_gangs = {
+    id:'s6', title:'Persecución por pandillas o grupos criminales', color:'#F1EFE8', numColor:'#2C2C2A',
+    questions:[
+      { id:'persecutors', q:'¿Qué pandilla o grupo criminal lo persiguió? Nombre exacto (MS-13, Barrio 18, Cártel del Golfo, CJNG, etc.), nombres o apodos de miembros específicos y cargos dentro de la pandilla.', critical:true,
+        placeholder:'Ej: MS-13 clica de Bonifacio Mejía en Soyapango. El Diablito (apodo) y El Lobo eran los que me amenazaban. El Diablito era palabrero (jefe local).' },
+      { id:'whyYouSpecifically', q:'¿Por qué LO ELIGIERON A USTED y no a otra persona? Esta es la pregunta más importante. ¿Le dijeron específicamente por qué? ¿Qué le diferencia de víctimas comunes de crimen?', critical:true,
+        placeholder:'Razón concreta — etnia, religión, opinión política, orientación sexual, familia, profesión, testigo, ex-pandillero. NO basta "porque tengo dinero" o "porque no quise unirme". Frases textuales que dijeron.' },
+      { id:'narrowingFeatures', q:'¿Qué características específicas suyas lo hacen parte de un grupo identificable? (Familia, posición en la comunidad, religión, etnia, orientación sexual, oposición pública).', critical:true,
+        placeholder:'Ej: Soy testigo de Jehová y me negué a pagar la renta por mi fe. Soy lesbiana abierta en Soyapango. Mi familia es propietaria del único negocio del barrio. Soy ex-policía retirado en 2019.' },
+      { id:'deFactoControl', q:'¿La pandilla controla el territorio donde usted vivía como si fuera un gobierno? ¿Cobra impuestos, controla quién entra/sale, dicta normas que la gente cumple? Describa cómo.', critical:false,
+        placeholder:'Ej: En mi colonia MS-13 cobra renta a todos los negocios, autoriza quién puede vivir ahí, prohíbe que la policía entre, mata a quien rompa sus reglas. Funciona como autoridad de facto.' },
+      { id:'policeComplicity', q:'¿La policía o autoridades municipales están vinculadas con la pandilla? ¿Cómo lo sabe? ¿Tiene evidencia?', critical:true,
+        placeholder:'Ej: El alcalde de mi municipio fue investigado por nexos con MS-13 (caso público 2022). Vi a oficiales de la Policía Nacional Civil entregar información a pandilleros. Cuando denuncié, la pandilla supo el mismo día qué dije.' },
+      { id:'opposingActions', q:'¿Hizo algo público o privado que demostrara su oposición a la pandilla más allá de simplemente no querer unirse? (denuncias, testimonios, organización comunitaria, etc.)', critical:false,
+        placeholder:'Ej: Organicé reuniones de vecinos contra la extorsión. Testifiqué en juicio. Publiqué en redes sociales. Reporté a la Fiscalía con expediente número...' },
+      { id:'hondurasACA', q:'IMPORTANTE: ¿Pasó por Honduras durante su viaje a EE.UU. o tiene conexión con Honduras? (Aplica solo si NO es de Honduras). EE.UU. firmó acuerdo "safe third country" con Honduras en 2025.', critical:false, directInput:true,
+        placeholder:'Sí/No. Si pasó por Honduras: cuántos días, dónde estuvo, si tiene familia o nexos allí.' },
+    ]
+  };
+
+  const s7_gangs = {
+    id:'s7', title:'Primera señal de persecución', color:'#E1F5EE', numColor:'#04342C',
+    questions:[
+      { id:'firstEvent', q:'¿Cuándo notó por primera vez que la pandilla lo tenía en la mira? ¿Cuál fue el primer contacto, mensaje o señal? Describa fecha aproximada, lugar y qué pasó.', critical:true,
+        placeholder:'Primer contacto — pandilleros se le acercaron, recibió mensaje, vio que lo vigilaban, le pidieron "renta" por primera vez, intentaron reclutarlo, le advirtieron por algo que dijo o hizo...' },
+    ]
+  };
+
+  // ── COLOMBIA (post-conflicto FARC, ELN, AGC, BACRIM, ex-funcionarios) ────────
+  const s6_colombia = {
+    id:'s6', title:'Persecución por grupos armados en Colombia', color:'#F1EFE8', numColor:'#2C2C2A',
+    questions:[
+      { id:'persecutors', q:'¿Qué grupo armado lo persiguió? Nombres exactos (Disidencias FARC, ELN, Clan del Golfo/AGC, Pelusos, Caparros, Bandas Criminales). Nombres o alias de comandantes o miembros específicos.', critical:true,
+        placeholder:'Ej: Disidencias FARC frente 33, comandante alias "Mocho Tierra" en zona del Catatumbo. ELN frente Resistencia Cimarrón en Chocó.' },
+      { id:'currentOrFormer', q:'CRÍTICO: ¿Usted ES o FUE servidor público (policía, militar, fiscal, juez, líder social, sindicalista)? Si lo dejó, ¿hace cuánto y por qué? La distinción entre "actual" y "ex-" es vida o muerte para su caso.', critical:true,
+        placeholder:'Ej: Fui Patrullero de la Policía Nacional 2018-2023. Me retiré por amenazas. Actualmente civil. O: Sigo siendo concejal del municipio de X. O: Fui líder de Juntas de Acción Comunal hasta 2022.' },
+      { id:'reasonOfPersecution', q:'CRÍTICO (Matter of O-A-R-G-, BIA 2025): Si es ex-funcionario, ¿la persecución es por (a) actos específicos que usted hizo en su cargo, o (b) porque pertenece al GRUPO de ex-funcionarios? La diferencia legal es decisiva.', critical:true,
+        placeholder:'Ej (favorable): Después del Acuerdo de Paz 2016, las disidencias persiguen sistemáticamente a TODOS los ex-policías de mi región como clase. O: Me persiguen por la operación específica del 12 marzo 2022 donde decomisamos cocaína a alias "Mocho Tierra".' },
+      { id:'peaceAccord', q:'¿Su situación ocurrió antes o después del Acuerdo de Paz con FARC (noviembre 2016)? ¿Cómo cambió la situación de seguridad en su zona desde entonces?', critical:false,
+        placeholder:'Ej: Mi persecución empezó en 2019 después del rearme de disidencias. O: Mi familia fue desplazada en 2002 por FARC, y ahora las disidencias volvieron a la zona en 2021.' },
+      { id:'similarVictims', q:'¿Conoce a otras personas en su misma situación (mismo cargo, misma región, misma actividad) que también hayan sido perseguidas o asesinadas? Esto es crucial para mostrar patrón de persecución contra el GRUPO.', critical:true,
+        placeholder:'Ej: 3 ex-compañeros de la misma estación fueron asesinados 2023-2024. Lista de líderes sociales asesinados en mi municipio según Indepaz. Mi cuñado, también líder JAC, fue desplazado.' },
+      { id:'governmentResponse', q:'¿El gobierno colombiano le ofreció protección? (UNP, esquema de protección, traslado). Si sí, ¿qué pasó? Si no, ¿por qué?', critical:false,
+        placeholder:'Ej: Hice estudio de riesgo en la UNP, me asignaron riesgo "extraordinario" pero solo me dieron un teléfono. O: Me ofrecieron traslado pero las disidencias también operan en el nuevo municipio. O: Nunca pude acceder a UNP por trámites.' },
+    ]
+  };
+
+  const s7_colombia = {
+    id:'s7', title:'Primera señal de persecución', color:'#E1F5EE', numColor:'#04342C',
+    questions:[
+      { id:'firstEvent', q:'¿Cuándo notó por primera vez que un grupo armado lo tenía en la mira? Describa fecha aproximada, lugar y qué ocurrió (panfleto, llamada, seguimiento, atentado contra alguien cercano, etc.).', critical:true,
+        placeholder:'Primer indicio — panfleto amenazante, llamada anónima, vehículo sospechoso vigilando, asesinato de colega/familiar, amenaza directa en operativo, mensaje de WhatsApp...' },
+    ]
+  };
+
+  // ── HAITI (violencia generalizada, gangs, post-2021 caos institucional) ──────
+  const s6_haiti = {
+    id:'s6', title:'Persecución en Haití', color:'#F1EFE8', numColor:'#2C2C2A',
+    questions:[
+      { id:'persecutors', q:'¿Qué pandilla o grupo armado lo persiguió? (G9 de Cherizier, G-Pèp, 400 Mawozo, Village de Dieu, etc.) Nombres específicos si los conoce.', critical:true,
+        placeholder:'Ej: G9 ak Fanmi en Cité Soleil bajo Jimmy Cherizier "Barbecue". 400 Mawozo en Croix-des-Bouquets dirigida por Lanmò San Jou.' },
+      { id:'whyYouSpecifically', q:'¿Por qué LO ELIGIERON A USTED? Haití tiene violencia generalizada — el BIA ha dicho repetidamente que "violencia generalizada" no es persecución protegida. ¿Qué le distingue?', critical:true,
+        placeholder:'Razón concreta — opinión política (apoyo a partido específico, oposición a Tet Kale o Lavalas), religión (vodun, evangélico, católico activo), orientación sexual, familia con propiedades, profesión específica, testigo en caso público.' },
+      { id:'politicalAffiliation', q:'¿Tiene afiliación política conocida en Haití? (PHTK/Tet Kale, Fanmi Lavalas, OPL, MOPOD, etc.) ¿Esta afiliación lo expone? (Importante: Matter of R-B-E- 2026 dice que cambios fundamentales pueden refutar persecución pasada).', critical:false,
+        placeholder:'Ej: Fui activo de Lavalas hasta 2004. Tet Kale identificó mi familia como Lavalas. O: Apoyé públicamente al partido X en elecciones 2016.' },
+      { id:'governmentCollapse', q:'¿Cómo afecta a su caso el colapso institucional de Haití (asesinato de Moïse 2021, Misión de la ONU 2024, gobierno transitorio)? ¿Por qué la policía o el Estado NO puede protegerlo a usted específicamente?', critical:true,
+        placeholder:'Ej: La PNH en mi zona fue desbordada por G9 en 2023. Mi denuncia previa al asesinato de Moïse quedó archivada y los pandilleros tienen acceso a expedientes policiales.' },
+      { id:'returneeRisk', q:'¿Es deportado de EE.UU. previo o tiene historial criminal en EE.UU.? El BIA ha tratado este tema específicamente (Matter of D-J-L- 2026, Matter of A-A-R- 2025, Matter of A-A-F-V- 2025).', critical:false,
+        placeholder:'Ej: Fui deportado de EE.UU. en 2017 por aggravated felony, y al llegar a Puerto Príncipe fui detenido por policía corrupta que sabía mi historial. O: Tengo tatuajes que me identifican como gang en El Salvador.' },
+      { id:'specificEvidence', q:'Evidencia de su caso individualizado (NO generalizada de Haití). ¿Hay reportes, fotos, mensajes, testigos específicos de SU situación?', critical:false,
+        placeholder:'Ej: Tengo capturas de WhatsApp de amenazas de G9 con mi nombre. Foto del panfleto que dejaron en mi puerta. Audio donde mencionan mi dirección.' },
+    ]
+  };
+
+  const s7_haiti = {
+    id:'s7', title:'Primera señal de persecución', color:'#E1F5EE', numColor:'#04342C',
+    questions:[
+      { id:'firstEvent', q:'¿Cuándo notó por primera vez que estaba en peligro individualizado (no solo por la violencia general de Haití)? Fecha aproximada, lugar y qué ocurrió.', critical:true,
+        placeholder:'Primer evento individualizado — amenaza directa nombrándolo, secuestro fallido contra usted o familiar cercano, panfleto con su nombre, ataque a su vivienda específica...' },
+    ]
+  };
+
+  // ── OTHER (Africa, Asia, Europa Oriental, Medio Oriente, etc.) ───────────────
+  const s6_other = {
+    id:'s6', title:'Persecución y persecutores', color:'#F1EFE8', numColor:'#2C2C2A',
+    questions:[
+      { id:'persecutors', q:'¿Quiénes lo persiguieron? Nombre del grupo, organización, fuerza estatal o actor privado. Nombres específicos de personas si las conoce.', critical:true,
+        placeholder:'Ej: Talibán en provincia de Helmand, comandante Mullah Ahmad. O: Policía religiosa de Irán en Teherán. O: Familia paterna por matrimonio forzado en Pakistán.' },
+      { id:'protectedGround', q:'CRÍTICO: ¿Cuál es la base PROTEGIDA por la ley de asilo de su persecución? Las 5 razones son: raza, religión, nacionalidad, opinión política, o membresía en grupo social particular.', critical:true,
+        placeholder:'Ej: Religión — convertido del Islam al Cristianismo, considerado apóstata. O: Opinión política — periodista crítico del gobierno. O: Grupo social particular — mujer víctima de FGM, persona LGBTQ+, familia específica (debe demostrar distinción social a nivel nacional según Matter of S-E-M-Z- 2026).' },
+      { id:'narrowingFeatures', q:'Si su grupo social se basa en sexo/género o nacionalidad, NO es suficiente por sí solo (Matter of K-E-S-G- 2025). ¿Qué características específicas LO IDENTIFICAN dentro de su sociedad?', critical:true,
+        placeholder:'Ej: NO solo "mujer afgana" sino "mujer afgana educada que trabajó para gobierno occidental 2015-2021". NO solo "hombre nigeriano" sino "hombre cristiano del estado de Plateau perseguido por Fulani militants".' },
+      { id:'governmentRole', q:'¿El persecutor es el gobierno, agente del gobierno, o actor privado? Si es actor privado, ¿por qué el gobierno NO puede o NO quiere protegerlo? (Matter of A-B- I y II reinstaurados por AG Bondi 2025).', critical:true,
+        placeholder:'Ej: Talibán ES el gobierno de facto en Afganistán desde 2021. O: Policía iraní es el persecutor directo. O: Es persecución familiar pero gobierno paquistaní no interviene por leyes Shariah locales.' },
+      { id:'nationalReach', q:'IMPORTANTE (Matter of F-B-A- 2026, Matter of S-E-M-Z- 2026): ¿El persecutor tiene alcance NACIONAL o se limita a una zona? Si es zonal, ¿por qué no pudo simplemente mudarse a otra ciudad del país?', critical:true,
+        placeholder:'Ej: Talibán controla todo Afganistán. O: Policía iraní opera en todo el país con bases de datos compartidas. O: Mi familia tiene contactos solo en mi provincia pero el sistema de registro nacional me localizaría en cualquier ciudad.' },
+      { id:'pastResettlement', q:'¿Vivió antes en otro país después de salir del país de persecución? ¿Aplicó asilo o estatus en otro país? (Matter of R-A-U- 2026: aplicaciones previas afectan credibilidad severamente).', critical:true, directInput:true,
+        placeholder:'Ej: Apliqué asilo en Alemania 2018, denegado. O: Viví en Turquía 3 años con estatus temporal. O: Solicité refugio en ACNUR campo de Dadaab Kenia. Sé que voy a tener que explicar por qué no me quedé allí.' },
+    ]
+  };
+
+  const s7_other = {
+    id:'s7', title:'Primera señal de persecución', color:'#E1F5EE', numColor:'#04342C',
+    questions:[
+      { id:'firstEvent', q:'¿Cuándo notó por primera vez que estaba en peligro? Describa fecha aproximada, lugar y qué ocurrió. Si la persecución empezó en su infancia, descríbalo desde ahí.', critical:true,
+        placeholder:'Primer evento — amenaza, detención, agresión, descubrimiento de conversión religiosa, identificación como LGBTQ+, presión familiar para matrimonio, reclutamiento forzado, primer panfleto, primera llamada anónima...' },
+    ]
+  };
+
 
   // ── SHARED S8 — structured event blocks (same for all groups) ─────────────────
   // Build initial 4 events — more can be added dynamically up to 15
@@ -2494,103 +2604,104 @@ ORDEN OBLIGATORIO DE LA NARRATIVA:
 14. Por qué no puede regresar — evidencia concreta de búsqueda activa
 15. Cierre emocional
 
-═══ ESTÁNDARES LEGALES BIA — BASADOS EN DECISIONES REALES ═══
+═══ ESTÁNDARES LEGALES APLICABLES — MARCO DEL DERECHO DE ASILO ═══
 
-1. NEXO CAUSAL — lo más importante de toda la declaración:
+1. NEXO CAUSAL — el elemento central de toda declaración:
 - El motivo protegido solo necesita ser UNA razón, no la única ni la principal (Matter of J-B-N-)
-- Las palabras del persecutor durante los hechos SON el nexo más poderoso: si lo llamaron "contrarrevolucionario", "traidor", "gusano", "antirevolucionario", "worm", o mencionaron su familia, religión o partido — esas palabras exactas deben aparecer entre comillas en la declaración
-- CASO REAL: En O-G-B- (Cuba 2021), el BIA concedió asilo porque los policías llamaron al solicitante "contrarrevolucionario" mientras lo golpeaban — esa sola palabra estableció el nexo
-- CASO REAL: En 5318075 (Cuba 2022), el BIA confirmó que etiquetar a alguien de "traidor" y "contra-revolucionario" por abandonar el partido establece nexo de opinión política imputada
-- CASO REAL: En 5476018 (Venezuela 2024), el BIA confirmó el nexo porque los militares acusaron al solicitante de estar "contra el gobierno" y él respondió que no sería "parte de los asesinos de Maduro"
+- Las palabras del persecutor durante los hechos SON el nexo más poderoso: si lo llamaron "contrarrevolucionario", "traidor", "gusano", "antirevolucionario", o mencionaron su familia, religión o partido — esas palabras exactas deben aparecer entre comillas en la declaración
+- PRINCIPIO ESTABLECIDO: cuando agentes estatales usan epítetos políticos ("contrarrevolucionario", "traidor") mientras agreden o detienen al solicitante, esas palabras establecen nexo de opinión política imputada de manera contundente
+- PRINCIPIO ESTABLECIDO: etiquetar a alguien de "traidor" o "contra-revolucionario" por abandonar un partido oficial establece nexo de opinión política imputada
+- PRINCIPIO ESTABLECIDO: cuando militares o agentes acusan al solicitante de estar "contra el gobierno" y el solicitante se distancia explícitamente del régimen, eso confirma el nexo
 - Si coexiste motivo económico/criminal con motivo protegido, explicar ambos y establecer que el protegido fue central
 
-2. OPINIÓN POLÍTICA — definición amplia confirmada por el BIA:
-- Negarse a unirse a la UJC, CDR, PSUV, Partido Comunista, o cualquier organización del régimen = opinión política (5402064, Cuba 2024)
-- Negarse a votar en referéndum o participar en actos políticos = opinión política (5402064)
-- Negarse a twittear propaganda del gobierno o criticar el programa médico = opinión política imputada (5398317, Cuba 2023)
-- Criticar la economía, el desempleo, la gestión del gobierno, las relaciones exteriores = opinión política (5506888, Syria/BIA 2025)
-- No es necesario expresar la opinión públicamente — basta con que el persecutor la imputara (5318075, 5398317)
-- CASO REAL: médico cubano que se negó a hacer política a favor del régimen y a twittear en apoyo a Rusia — el gobierno lo catalogó como "que expresó criterios contrarios al sistema político"
-- Ser sexualmente abusada por un funcionario del Estado que luego amenaza con cárcel por negarse a participar en actos políticos = nexo político (5402064)
+2. OPINIÓN POLÍTICA — definición amplia en jurisprudencia:
+- Negarse a unirse a la UJC, CDR, PSUV, Partido Comunista, o cualquier organización del régimen = opinión política
+- Negarse a votar en referéndum o participar en actos políticos = opinión política
+- Negarse a publicar propaganda del gobierno o criticar políticas del Estado = opinión política imputada
+- Criticar la economía, el desempleo, la gestión del gobierno, las relaciones exteriores = opinión política
+- No es necesario expresar la opinión públicamente — basta con que el persecutor la imputara
+- PRINCIPIO ESTABLECIDO: profesionales (médicos, maestros, ingenieros) que se nieguen a hacer política a favor del régimen pueden ser perseguidos por opinión política, cuando el gobierno los cataloga como "contrarios al sistema"
+- PRINCIPIO ESTABLECIDO: abuso sexual por funcionario estatal que luego amenaza con consecuencias por negarse a participar en actos políticos = nexo político
 
 3. PERSECUCIÓN ECONÓMICA Y NO-FÍSICA — también cuenta:
-- Negar sistemáticamente el empleo = persecución (5318075, Cuba)
-- Amenazar con encarcelamiento de por vida si vuelve a trabajar = persecución
+- Negar sistemáticamente el empleo por motivos políticos = persecución
+- Amenazar con encarcelamiento si vuelve a trabajar = persecución
 - Pérdida del trabajo + expulsión académica + restricciones económicas graves = persecución acumulativa
 - No se requiere daño físico para establecer persecución pasada (Matter of T-Z-)
 
 4. PERSECUCIÓN ACUMULATIVA — patrón de eventos:
-- Múltiples detenciones + amenazas de muerte + vigilancia intensa + restricciones laborales = persecución aunque cada incidente solo no alcanzaría (O-G-B-, 5449271)
-- CASO REAL (5449271, Cuba): 60 visitas militares en 2 años + 3 detenciones de 15 días cada una + amenazas de muerte en prisión = persecución por acumulación
-- Para construir el patrón: narrar cada evento en orden cronológico, luego incluir un párrafo que diga: "Considerando todos estos hechos en conjunto, lo que viví fue una campaña sistemática de hostigamiento que me causó [impacto en su vida]"
+- Múltiples detenciones + amenazas de muerte + vigilancia intensa + restricciones laborales = persecución, aunque cada incidente solo no alcanzaría
+- PRINCIPIO ESTABLECIDO: 60+ visitas de seguridad estatal en 2 años + detenciones cortas repetidas + amenazas de muerte = persecución por acumulación
+- Para construir el patrón: narrar cada evento en orden cronológico, luego incluir un párrafo de cierre: "Considerando todos estos hechos en conjunto, lo que viví fue una campaña sistemática de hostigamiento que me causó [impacto en su vida]"
 
 5. FAMILIA COMO MOTIVO (PSG familiar):
-- La pregunta legal es: ¿por qué eligieron a ESTA persona específica, y no a otra? — la respuesta es su relación familiar (5401545, 5389583, 5496849)
-- Si el persecutor mencionó explícitamente el familiar durante la amenaza: esas palabras son el nexo. CASO REAL (5401545, El Salvador): "los pandilleros le dijeron directamente que lo perseguían por su relación con su padre" — eso bastó
-- Si la amenazan para que revele la ubicación de un familiar: eso establece nexo familiar (5389583)
-- El motivo económico/criminal del persecutor NO elimina el nexo familiar si la familia fue el factor que lo hizo elegible para el ataque (5511361, 5496849)
-- Familia de político que fue golpeado por su opinión política = "familia de activista de partido político" es PSG cognoscible (5389583)
+- La pregunta legal central es: ¿por qué eligieron a ESTA persona específica, y no a otra? — la respuesta puede ser su relación familiar
+- Si el persecutor mencionó explícitamente al familiar durante la amenaza: esas palabras son el nexo
+- PRINCIPIO ESTABLECIDO: cuando pandilleros o agentes dicen explícitamente que persiguen al solicitante "por su relación con [familiar]", eso establece nexo familiar suficiente
+- Si amenazan al solicitante para que revele la ubicación de un familiar perseguido: eso establece nexo familiar
+- El motivo económico/criminal del persecutor NO elimina el nexo familiar si la familia fue el factor que hizo al solicitante elegible para el ataque
+- Familia de activista político como PSG cognoscible es reconocido en la jurisprudencia
 
-6. POR QUÉ NO DENUNCIÓ — lenguaje legal exacto:
-- NO se requiere escalar la denuncia a múltiples estaciones o instancias superiores después de ser rechazado por la primera (5421669, Matter of C-G-T-)
-- El estándar legal es "inacción deliberada o complicidad tácita" — no se requiere colusión formal (5397720)
-- Denunciar era PELIGROSO (no solo inútil) = razón suficiente y legalmente válida para no ir (5424801, Matter of C-G-T-)
+6. POR QUÉ NO DENUNCIÓ — marco legal:
+- NO se requiere escalar la denuncia a múltiples estaciones o instancias superiores después de ser rechazado por la primera (Matter of C-G-T-)
+- El estándar legal es "inacción deliberada o complicidad tácita" — no se requiere demostrar colusión formal
+- Denunciar era PELIGROSO (no solo inútil) = razón suficiente y legalmente válida para no ir (Matter of C-G-T-)
 - Si los mismos que persiguieron son los que mandan en la estación de policía: incluir nombre y cargo de quien rechazó la denuncia y su relación con el persecutor
-- Si el gobierno ES el persecutor (como en Cuba, Venezuela, Nicaragua): el solicitante NO está obligado a denunciar al persecutor ante sí mismo (5402064)
-- CASO REAL (5424801, El Salvador): policía le dijo al solicitante que "si demandaba, las pandillas lo matarían" — eso es "peligroso", no solo "inútil"
+- Si el gobierno ES el persecutor (Cuba, Venezuela, Nicaragua): el solicitante NO está obligado a denunciar al persecutor ante sí mismo
+- PRINCIPIO ESTABLECIDO: cuando el policía explícitamente advierte al solicitante que si denuncia "las pandillas lo matarán", eso configura "peligroso", no solo "inútil"
 
-7. CREDIBILIDAD — lo que el BIA protege y penaliza:
-- Dar más detalles en juicio que en la entrevista de miedo creíble NO destruye la credibilidad si el solicitante da una explicación (5476018: "tenía miedo que Venezuela accediera a mis datos")
-- Errores menores de fechas o detalles NO destruyen la credibilidad si el solicitante los explica y el resto del relato es consistente (5381744)
-- La declaración escrita coherente con el testimonio oral = credibilidad (5476018)
+7. CREDIBILIDAD — factores protectores:
+- Dar más detalles en juicio que en la entrevista de miedo creíble NO destruye la credibilidad si el solicitante da una explicación (ej: temor a que el régimen acceda a sus datos)
+- Errores menores de fechas o detalles NO destruyen la credibilidad si el solicitante los explica y el resto del relato es consistente
+- La declaración escrita coherente con el testimonio oral = credibilidad reforzada
 - EVITAR en la declaración: inconsistencias internas, fechas que se contradicen entre secciones, nombres que cambian
 
 8. MIEDO FUNDADO — umbrales legales:
-- Solo se necesita un 10% de probabilidad de persecución futura para establecer miedo fundado (Knezevic v. Ashcroft, citado en 5394833)
-- El BIA revirtió IJ que negó miedo fundado porque el ataque al hogar era "especulativo" — el contexto del país + el patrón de conducta establecen el nexo (5394833, Nicaragua)
-- Evidencia de ataque a persona en situación similar hace que las amenazas sean más creíbles y suficientes (5483579)
+- Solo se necesita un 10% de probabilidad de persecución futura para establecer miedo fundado (Knezevic v. Ashcroft)
+- PRINCIPIO ESTABLECIDO: cuando el contexto del país combinado con el patrón personal de conducta del solicitante establecen una amenaza concreta, el riesgo NO es "especulativo"
+- Evidencia de ataque a persona en situación similar hace que las amenazas sean más creíbles y suficientes
 - Si hubo persecución pasada probada: se presume el miedo a futuro y es DHS quien debe rebatir (Matter of D-I-M-)
 
 9. PAÍS DE TRÁNSITO — no es razón para negar:
-- No haber pedido asilo en países de tránsito NO es por sí solo motivo de negación (K-A-R-A-, BIA 2020)
+- No haber pedido asilo en países de tránsito NO es por sí solo motivo de negación
 - La declaración debe explicar brevemente por qué en cada país no había protección real
-- El objetivo siempre fue EE.UU. como único sistema legal efectivo de protección
+- El objetivo siempre fue EE.UU. como sistema legal efectivo de protección
 
 10. CUANDO EL GOBIERNO ES EL PERSECUTOR (Cuba, Venezuela, Nicaragua):
-- El solicitante NO necesita demostrar que el gobierno es "incapaz o no quiere protegerlo" — el gobierno ES el persecutor, punto (5402064, O-G-B-, K-A-R-A-)
+- El solicitante NO necesita demostrar que el gobierno es "incapaz o no quiere protegerlo" — el gobierno ES el persecutor
 - La reubicación interna SE PRESUME IRRAZONABLE cuando el persecutor es el propio Estado (8 C.F.R. § 1208.13(b)(3)(ii))
 - Después de salir del país, si familiares reportan que el régimen sigue buscando al solicitante: incluir nombre del familiar, fecha y lo que los agentes dijeron cuando fueron a buscarlo
-- CASO REAL (5505228, Rusia 2025): negarse a ser informante de la policía contra su comunidad religiosa = nexo religioso Y político simultáneamente. Summons criminal posterior a la salida = evidencia poderosa de persecución futura
-- CASO REAL (5505228): poder salir del país NO destruye el miedo fundado — el BIA rechazó ese argumento de DHS explícitamente
+- PRINCIPIO ESTABLECIDO: negarse a ser informante de la policía contra una comunidad religiosa propia = nexo religioso Y político simultáneamente
+- PRINCIPIO ESTABLECIDO: una citación criminal o procesal posterior a la salida del país = evidencia poderosa de persecución futura
+- PRINCIPIO ESTABLECIDO: poder salir del país por canales regulares NO destruye el miedo fundado
 
-11. FAMILIARES SIN DAÑO — el argumento del juez más común, cómo anticiparlo:
-- Si el IJ dice "su familia quedó en el país sin daño, por lo tanto usted no tiene miedo fundado" — ese argumento solo es válido si la familia está en la MISMA posición que el solicitante (5501316, 5504167)
+11. FAMILIARES SIN DAÑO — anticipando el argumento más común:
+- Si el juez dice "su familia quedó en el país sin daño, por lo tanto usted no tiene miedo fundado" — ese argumento solo es válido si la familia está en la MISMA posición que el solicitante
 - La declaración DEBE incluir un párrafo explicando por qué el solicitante tiene características específicas que sus familiares no tienen: activismo político más visible, negocio, ser testigo directo, haber desertado, haber negado unirse al grupo, haber sido identificado personalmente
-- CASO REAL (5504167, Rusia 2025): madre y hermanos sin daño NO destruyó el miedo fundado porque el IJ no analizó si estaban en la misma posición. El BIA revirtió porque el solicitante tenía un canal de Telegram político que sus familiares no tenían
-- CASO REAL (5501316, Brasil 2025): el IJ dijo "familia sigue en Brasil sin daño" pero el BIA revirtió porque el IJ no analizó si esa familia tenía el mismo perfil de activismo político que el solicitante
+- PRINCIPIO ESTABLECIDO: cuando el solicitante tiene perfil de activismo (ej: canal de redes sociales, militancia visible, denuncia pública) que su familia NO tiene, su miedo personal es independiente del estado de la familia
 
 12. PERSECUCIÓN POR UN SOLO EVENTO GRAVE — no requiere patrón:
-- Una violación/agresión sexual = persecución por sí sola, no requiere "ataque sostenido" ni "persecución sistemática" (5498649, México 2024)
-- CASO REAL (5498649): el BIA revirtió al IJ que negó que una violación por policías en México fuera persecución por no ser "ataque sostenido" — la violación POR SÍ SOLA es persecución
-- Una detención con maltrato físico grave + amenaza de muerte = persecución de evento único (O-G-B-, 5402064)
-- Mutilación genital femenina = persecución pasada que genera presunción de futura, aunque el evento ya ocurrió (5418772)
+- Una violación o agresión sexual por agentes estatales = persecución por sí sola, no requiere "ataque sostenido"
+- PRINCIPIO ESTABLECIDO: violación por policías o militares por sí sola constituye persecución, sin necesidad de demostrar campaña sistemática
+- Una detención con maltrato físico grave + amenaza de muerte = persecución de evento único
+- Mutilación genital femenina = persecución pasada que genera presunción de futura, aunque el evento ya ocurrió (Matter of Kasinga)
 
 13. PRESUNCIÓN DE PERSECUCIÓN FUTURA — crítico para el caso:
-- Una vez probada persecución PASADA, se PRESUME automáticamente que habrá persecución futura (Matter of D-I-M-, citado en 5402064, 5418772, K-A-R-A-)
+- Una vez probada persecución PASADA, se PRESUME automáticamente que habrá persecución futura (Matter of D-I-M-)
 - Es DHS quien debe probar que las circunstancias cambiaron — no el solicitante quien debe probar que el riesgo sigue
 - La declaración debe establecer claramente la persecución pasada para activar esta presunción
-- Si el gobierno cambió de régimen o hay "acuerdo de paz" (FARC en Colombia, R-M-S-), DHS puede intentar rebatir con eso — la declaración debe anticipar mencionando que el peligro concreto persiste para el solicitante específicamente
+- Si el gobierno cambió de régimen o hay "acuerdo de paz" (FARC en Colombia, transición venezolana, etc.), DHS puede intentar rebatir con eso — la declaración debe anticipar mencionando que el peligro concreto persiste para el solicitante específicamente
 
 14. COLOMBIA — estándares específicos FARC/ELN/grupos armados:
-- Amenazas telefónicas por años + asesinato de familiares + ataque a empleado = persecución acumulativa suficiente (R-M-S-, Colombia 2018)
+- Amenazas telefónicas por años + asesinato de familiares + ataque a empleado = persecución acumulativa suficiente
 - Las amenazas no tienen que ser en persona para ser persecución — amenazas concretas a distancia + muerte de personas cercanas = suficiente
-- Después de acuerdo de paz con FARC (2016): la declaración debe mencionar que el solicitante teme a disidentes de las FARC o a los grupos que ocuparon el espacio, no a la organización original
+- Después del acuerdo de paz con FARC (2016): la declaración debe mencionar que el solicitante teme a disidentes de las FARC, EMC, Segunda Marquetalia o grupos sucesores, no a la organización original
 - Si hay acuerdo de paz vigente, explicar específicamente por qué el solicitante individual sigue en peligro pese al acuerdo
-- CASO REAL (5487718, Colombia 2025): resistir reclutamiento forzado por FARC = opinión política antiestado/anti-guerrilla cognoscible
+- PRINCIPIO ESTABLECIDO: resistir reclutamiento forzado por grupos armados puede constituir opinión política antiestado/anti-guerrilla cognoscible
 
 15. TRÁNSITO DISCRECIONAL — el argumento definitivo:
-- No haber pedido asilo en tránsito NO puede ser el ÚNICO factor para negar asilo discrecionalmente (5260919, Cuba 2023; 5225419, Bangladesh 2022)
-- La "Third Country Transit Rule" fue anulada — si el IJ la usó, el caso se revierte
+- No haber pedido asilo en tránsito NO puede ser el ÚNICO factor para negar asilo discrecionalmente
+- La "Third Country Transit Rule" fue anulada — si un IJ la usó, el caso se revierte
 - El riesgo de persecución "outweighs all but the most egregious adverse factors" (Matter of Pula, Matter of Kasinga)
 - La declaración debe mencionar que el objetivo siempre fue EE.UU. y explicar brevemente por qué cada país de tránsito no ofrecía protección real, sin detenerse demasiado en ello
 
