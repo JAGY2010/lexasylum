@@ -768,32 +768,42 @@ const SECTIONS = [
   { id:'s1', title:'Datos personales', color:'#E6F1FB', numColor:'#042C53',
     questions:[
       { id:'name', q:'¿Cuál es el nombre completo exactamente como aparece en los documentos de identidad?', critical:true, placeholder:'Nombre completo' },
+      { id:'aliases', q:'CRÍTICO (Matter of R-A-U- 2026): ¿Ha usado alguna vez OTRO nombre, alias, identidad falsa o documentos a nombre de otra persona? Esto incluye nombres usados en otros países, redes sociales, o ante autoridades. Si no ha usado, responda "Nunca".', critical:true, placeholder:'Ej: Usé "Carlos Mendoza" cuando crucé México 2019 porque tenía pasaporte alquilado. O: Nunca he usado otro nombre.' },
       { id:'dob', q:'¿Fecha de nacimiento exacta? (día, mes, año)', critical:true, placeholder:'Ej: 15 de marzo de 1990' },
       { id:'birthCity', q:'¿Ciudad y provincia/departamento de nacimiento?', critical:true, placeholder:'Ciudad, Provincia/Estado' },
+      { id:'language', q:'¿Cuál es su lengua materna? ¿Necesita intérprete en corte? Si su lengua materna no es español, indique qué dialecto o variante específica habla.', critical:false, directInput:true, placeholder:'Ej: Español. O: K\'iche\' (necesito intérprete). O: Creole haitiano. O: Pashto, dialecto de Kandahar.' },
       { id:'anumber', q:'¿Número de extranjero (A-Number)? Si tiene NTA, ¿cuál es el número?', critical:false, directInput:true, placeholder:'Ej: 240-000-000' },
       { id:'marital', q:'¿Estado civil actual?', critical:true, placeholder:'Soltero/a, Casado/a, Divorciado/a, Viudo/a, Unión libre' },
       { id:'usAddress', q:'¿Ciudad y estado de EE.UU. donde reside actualmente?', critical:false, directInput:true, placeholder:'Ciudad, Estado' },
+      { id:'previousAsylum', q:'CRÍTICO (Matter of R-A-U- 2026): ¿Aplicó asilo, refugio o protección internacional en CUALQUIER otro país antes de EE.UU.? (México, Canadá, países europeos, ACNUR, etc.) Si lo hizo, ¿qué pasó con esa aplicación?', critical:true, placeholder:'Ej: Apliqué asilo en México en 2018, COMAR me lo negó. O: Apliqué refugio ACNUR en Costa Rica 2020, lo retiré. O: Nunca apliqué en ningún otro país.' },
+      { id:'cfiInterviews', q:'CRÍTICO (Matter of G-C-I- 2025): ¿Cuántas veces ha sido entrevistado por oficiales de EE.UU. desde su llegada? (CFI Credible Fear Interview, USCIS, ICE, agentes en frontera). Para cada entrevista: ¿qué le preguntaron y qué respondió? Inconsistencias entre lo que dijo y dice ahora destruyen su caso.', critical:true, placeholder:'Ej: CFI con asylum officer 15 marzo 2024 en Eloy AZ — me preguntaron por qué huí y dije X. Entrevista con ICE en frontera 10 marzo 2024 — solo me preguntaron datos básicos.' },
       { id:'children', q:'¿Tienen hijos, hijas, hijastros o hijastras? Por cada uno: nombre completo, fecha de nacimiento, lugar de nacimiento, dónde viven ahora.', critical:false, placeholder:'Ej: Juan López, 20 feb 2010, La Habana Cuba, vive en Tampa FL' },
     ]
   },
   { id:'s3', title:'Familia extensa', color:'#FAEEDA', numColor:'#412402',
     questions:[
-      { id:'fatherName', q:'¿Nombre completo del padre? ¿Dónde nació y dónde vive ahora?', critical:true, placeholder:'Nombre, lugar de nacimiento, residencia actual' },
-      { id:'motherName', q:'¿Nombre completo de la madre? ¿Dónde nació y dónde vive ahora?', critical:true, placeholder:'Nombre, lugar de nacimiento, residencia actual' },
+      { id:'fatherName', q:'¿Nombre completo del padre? ¿Dónde nació y dónde vive ahora? Si falleció, fecha y causa.', critical:true, placeholder:'Nombre, lugar de nacimiento, residencia actual. Si falleció: fecha y causa.' },
+      { id:'motherName', q:'¿Nombre completo de la madre? ¿Dónde nació y dónde vive ahora? Si falleció, fecha y causa.', critical:true, placeholder:'Nombre, lugar de nacimiento, residencia actual. Si falleció: fecha y causa.' },
       { id:'siblings', q:'¿Tiene hermanos, hermanas, hermanastros o hermanastras? Nombre completo y residencia actual de cada uno.', critical:false, placeholder:'Ej: María López, reside en Miami FL' },
+      { id:'minorityGroup', q:'CRÍTICO (Matter of K-E-S-G- 2025, Matter of S-E-M-Z- 2026): ¿Pertenece a algún grupo étnico, religioso, lingüístico, social o minoritario específico identificable en su país? Sexo y nacionalidad SOLOS NO son suficientes para asilo — necesita "narrowing features".', critical:true, placeholder:'Ej: Indígena Maya K\'iche\' de Sololá Guatemala. O: Cristiano evangélico convertido del Islam. O: Comunidad LGBTQ+ visible en Honduras. O: Familia con historial político específico. O: Periodista identificable.' },
       { id:'familyPersecution', q:'¿Hay antecedentes de persecución en la familia? Incluya: (a) historia familiar previa — abuelos, padres, tíos perseguidos por el régimen, expropiaciones, cárcel, represalias; y (b) represalias recientes contra familiares relacionadas directamente con el caso del cliente. Para cada caso: quién, cuándo, qué le hicieron y cómo se conecta con su situación.', critical:true, placeholder:'Ej: Mi abuelo le confiscaron tierras en 1960. Mi padre fue expulsado de su trabajo en 1985 por negarse al partido. Mi hermano fue detenido en 2019 como represalia por mis actividades...' },
+      { id:'familyUSWitnesses', q:'CRÍTICO (Matter of G-C-I- 2025): ¿Tiene familiares o conocidos cercanos EN EE.UU. que puedan SERVIR DE TESTIGOS de su persecución? El BIA en G-C-I- usó en CONTRA del cliente que su hermano vivía en EE.UU. y NO escribió carta de apoyo. Para cada uno: nombre, relación, qué presenció, si está dispuesto a escribir carta.', critical:true, placeholder:'Ej: Mi hermano José López vive en Miami, presenció la golpiza del 15 marzo 2018 antes de salir él. Está dispuesto a escribir declaración jurada. Mi prima Ana vive en NY, sabe del caso por llamadas, también puede escribir.' },
+      { id:'familyDocuments', q:'¿Tiene documentos oficiales relacionados con persecución familiar? (Sentencias contra familiares, certificados de defunción por violencia política, expedientes judiciales, recortes de prensa). Especifique cuáles tiene y cuáles puede obtener.', critical:false, placeholder:'Ej: Certificado de defunción de mi padre 1990 dice "homicidio por arma de fuego" en zona controlada por FARC. Recortes del periódico La Prensa sobre detención de mi hermano. Sentencia 2015 contra mi tío por participar en protesta.' },
     ]
   },
   { id:'s4', title:'Educación', color:'#EEEDFE', numColor:'#26215C',
     questions:[
       { id:'education', q:'Detalle todas las instituciones educativas a las que asistió desde la primaria hasta el último nivel cursado. Por cada una indique: (a) en qué fecha inició, (b) nombre de la institución, (c) ciudad, (d) años cursados, (e) si la terminó o no, (f) si cambió de institución y por qué.', critical:true, placeholder:'Ej: 2001-2007 Escuela Primaria Rigoberto Cabezas, Puerto Cabezas, terminada. 2008-2013 Colegio Moravo Jack, Puerto Cabezas, no terminada porque me cambié. 2014-2019 Universidad BICU, Puerto Cabezas, terminada.' },
+      { id:'educationDocuments', q:'CORROBORACIÓN (Matter of G-C-I- 2025): ¿Tiene diplomas, certificados, actas de grado o constancias académicas disponibles? ¿Cuáles puede obtener? El REAL ID Act exige corroboración cuando es razonablemente obtenible.', critical:false, placeholder:'Ej: Tengo diploma de bachiller original. Diploma universitario quedó en mi casa pero mi madre puede enviarlo. Certificado de notas lo puedo pedir en línea.' },
       { id:'educationDenied', q:'¿Le negaron alguna oportunidad educativa por razones políticas, familiares o de origen? ¿Cuál, quién lo decidió y qué razón dieron?', critical:false, placeholder:'Qué le negaron, quién decidió, razón oficial dada, consecuencias' },
     ]
   },
   { id:'s5', title:'Profesión y trabajo', color:'#FBEAF0', numColor:'#4B1528',
     questions:[
       { id:'profession', q:'¿Cuál es su profesión u oficio principal?', critical:true, placeholder:'Ej: Maestro, Médico, Agricultor, Barbero...' },
+      { id:'professionalLicense', q:'¿Tiene título profesional, licencia o registro oficial de su profesión? ¿Está disponible? ¿Le fue revocada o suspendida en su país (común para opositores políticos en regímenes)?', critical:false, placeholder:'Ej: Médico colegiado en Venezuela, registro 12345. Me suspendieron en 2018 después de firmar contra Maduro. Tengo copia del registro pero no del acta de suspensión.' },
       { id:'workplace', q:'¿Dónde trabajaba en su país o tenía negocio propio? Nombre del empleador o tipo de negocio. ¿Fue extorsionado, amenazado, obligado a cerrar o despedido por razones políticas o por presión de grupos armados? ¿Quién lo hizo, cuándo y qué pasó?', critical:false, placeholder:'Ej: Trabajaba en Restaurante El Sol. También tenía una cafetería propia — inspectores llegaban a cobrar ilegalmente, me cerraron 3 veces en 2016 hasta que pagara...' },
+      { id:'workDocuments', q:'CORROBORACIÓN (Matter of G-C-I- 2025): ¿Tiene cartas laborales, contratos, registros de empresa, recomendaciones de empleadores anteriores? ¿Cuáles puede obtener?', critical:false, placeholder:'Ej: Carta de mi último empleador en Honduras explica que cerré por amenazas de MS-13. Tengo RTU (Registro Tributario) de mi negocio. Mi ex-jefe me puede enviar referencia por email.' },
     ]
   },
   // s6, s7, s8 son adaptivos — ver getAdaptiveSections()
@@ -811,7 +821,11 @@ const SECTIONS = [
   { id:'s10', title:'Por qué no pudo protegerse internamente', color:'#E6F1FB', numColor:'#042C53',
     questions:[
       { id:'whyNoPolice', q:'¿Por qué no fue a la policía o autoridades a denunciar? ¿Lo intentó alguna vez? Si lo hizo, ¿qué ocurrió exactamente — quién lo atendió, qué le dijeron, tomaron alguna acción, empeoró la situación después?', critical:true, placeholder:'Razón principal para no denunciar (complicidad policial, miedo, estructura del sistema). Si intentó denunciar: nombre del oficial, fecha, respuesta que recibió, consecuencias...' },
-      { id:'whyNoMove', q:'¿Por qué no pudo mudarse a otra ciudad del país para estar seguro? ¿Lo intentó?', critical:true, placeholder:'Razón concreta — los perseguidores tienen alcance nacional, ya lo buscaron donde se mudó, familia retenida, etc.' },
+      { id:'relocationAttempt', q:'CRÍTICO (Matter of F-B-A- 2026, Matter of V-A-B- 2026): ¿INTENTÓ MUDARSE a otra ciudad o región del país para escapar? Si SÍ: ¿dónde, cuándo, qué pasó? Si NO: ¿por qué no? El BIA EXIGE que los adultos intenten relocación INTERNA antes de huir del país.', critical:true, placeholder:'Ej: SÍ intenté mudarme a Tegucigalpa en febrero 2019, viví 3 meses pero MS-13 me localizó a través de su red de informantes. O: Intenté Bogotá pero las disidencias FARC tienen alcance nacional. O: NO intenté porque mi familia (padre enfermo) requería mi presencia.' },
+      { id:'nationalReach', q:'CRÍTICO (Matter of S-E-M-Z- 2026): ¿El persecutor tiene ALCANCE NACIONAL en su país? Demuestre por qué no podría escapar mudándose. El BIA mide "social distinction" y persecución a nivel NACIONAL, no de vecindario.', critical:true, placeholder:'Ej: MS-13 tiene células coordinadas en todos los departamentos de Honduras, comparten información por WhatsApp. Las disidencias FARC controlan rutas Catatumbo-Pacífico-Amazonía. El régimen cubano tiene Seguridad del Estado en cada provincia con bases de datos compartidas. Los talibanes operan en todo Afganistán con check-points en carreteras.' },
+      { id:'countrySize', q:'IMPORTANTE (Matter of F-B-A- 2026): Considere el tamaño geográfico de su país y por qué no podría esconderse. El BIA usó EN CONTRA del cliente el tamaño de Rusia para concluir que pudo haberse mudado.', critical:false, placeholder:'Ej: Mi país es pequeño (Honduras 112,000 km²), las pandillas se comunican entre departamentos. O: Aunque mi país es grande (Colombia), la red de informantes urbanos y el sistema de cédula me localizaría. Refiérase al tamaño específico de su país y por qué no es protección suficiente.' },
+      { id:'institutionalSupport', q:'¿Existen ONG, refugios, programas gubernamentales (UNP en Colombia, Casa Refugio en México, etc.) o autoridades alternativas que pudieran haberlo ayudado? ¿Lo intentó? Si NO los usó, ¿por qué?', critical:false, placeholder:'Ej: Solicité UNP en Colombia, me hicieron estudio de riesgo "ordinario" y me dieron solo teléfono — insuficiente. O: La Casa de la Mujer en San Salvador estaba bajo amenaza también. O: No existen refugios en mi región.' },
+      { id:'policeComplicityEvidence', q:'EVIDENCIA DOCUMENTAL (Matter of V-A-B- 2026): Si afirma que la policía es cómplice del persecutor, ¿qué evidencia ESPECÍFICA tiene? El BIA RECHAZA afirmaciones generales de "todos están corruptos" sin documentación.', critical:false, placeholder:'Ej: Reporte HRW 2024 documentando 12 oficiales PNC colombianos vinculados con AGC en mi departamento. Caso público #345/2023 contra el alcalde de mi municipio. Mensaje WhatsApp filtrado de pandillero hablando con oficial. Reporte Departamento de Estado EE.UU. sobre corrupción en zona específica.' },
     ]
   },
   { id:'s11', title:'Ruta de viaje', color:'#EAF3DE', numColor:'#173404',
@@ -820,12 +834,15 @@ const SECTIONS = [
       { id:'route', q:'¿Qué países cruzó en orden? ¿Cuánto tiempo estuvo en cada uno?', critical:true, placeholder:'Ej: Nicaragua (2 días) → Honduras (1 día) → Guatemala → México (15 días)' },
       { id:'travelIncidents', q:'¿Vivió algún incidente peligroso durante el viaje? (robos, secuestros, extorsión por coyotes o autoridades)', critical:false, placeholder:'Descripción de incidentes, quién estuvo involucrado, consecuencias' },
       { id:'whyNoAsylumTransit', q:'¿Por qué no pidió asilo en los países que cruzó? ¿Qué le impedía?', critical:true, placeholder:'Razón específica por cada país — corrupción, miedo a deportación, desconocimiento del proceso, falta de tiempo, peligro en esos países también' },
+      { id:'transitAsylumApplications', q:'CRÍTICO (Matter of R-A-U- 2026, Matter of C-I-G-M- 2025): ¿Aplicó, INTENTÓ aplicar, o se le habló de asilo/refugio/visa en ALGÚN país de tránsito? Incluso si lo retiró o no lo completó. La omisión de aplicaciones previas DESTRUYE credibilidad.', critical:true, placeholder:'Ej: Apliqué refugio en COMAR México octubre 2023, lo retiré 1 mes después por amenazas. O: Pregunté en oficina ACNUR Costa Rica pero no apliqué. O: Tránsito por Honduras: ATENCIÓN si EE.UU. firmó ACA con Honduras — puede aplicar bar de safe-third-country.' },
     ]
   },
   { id:'s12', title:'Llegada a Estados Unidos', color:'#EEEDFE', numColor:'#26215C',
     questions:[
       { id:'entryDate', q:'¿Fecha exacta y lugar de entrada a EE.UU.?', critical:true, placeholder:'Fecha y lugar de entrada (ciudad, estado, nombre del cruce)' },
       { id:'detained', q:'¿Cómo fue recibido al entrar? ¿Lo detuvieron? ¿Cuánto tiempo estuvo detenido y dónde?', critical:false, placeholder:'Descripción del ingreso, si hubo detención, nombre del centro, duración' },
+      { id:'cfiContent', q:'CRÍTICO (Matter of G-C-I- 2025, Matter of R-A-U- 2026): En su CFI (Credible Fear Interview) o cualquier entrevista inicial con USCIS/asylum officer, ¿QUÉ EXACTAMENTE le dijo al oficial sobre su persecución? Recuerde con MÁXIMO detalle. INCONSISTENCIAS entre lo que dijo en CFI y lo que dice ahora DESTRUYEN su caso de asilo.', critical:true, placeholder:'Ej: En mi CFI el 15 marzo 2024 en Eloy AZ con la oficial Smith dije: "Las pandillas MS-13 me amenazaron porque mi hermano era policía". NO mencioné que también soy LGBTQ+ porque tenía miedo. NO mencioné los eventos específicos de 2019 porque la entrevista fue muy rápida y solo me preguntaron lo básico.' },
+      { id:'cfiNotes', q:'¿Tiene COPIA de las notas del CFI, transcripción, o "Record of Determination"? ¿Su abogado las solicitó vía FOIA? Si hubo OMISIONES o ERRORES, ¿cuáles? El BIA en G-C-I- comparó CFI vs testimonio 15 años después y eso fue DEVASTADOR para el solicitante.', critical:true, placeholder:'Ej: Tengo el formulario I-870 y las notas del CFI. La oficial escribió mal el nombre de la pandilla. Omitió que mencioné LGBTQ+. No grabaron audio. O: No tengo nada del CFI, mi abogado va a solicitar vía FOIA. O: No pasé CFI porque entré por puerto y me dieron NTA directo.' },
       { id:'courtDate', q:'¿Tiene NTA (Notice to Appear)? ¿Cuándo es su próxima fecha en corte?', critical:false, placeholder:'Fecha de la próxima audiencia y número de caso si lo recuerda' },
       { id:'lifeInUS', q:'¿Cuál es su situación actual en EE.UU.? Mencione: actividades diarias, trabajo o estudios actuales en EE.UU., comunidad o iglesia a la que asiste, familiares o conocidos que viven aquí y cómo se relaciona con ellos.', critical:false, placeholder:'Actividades actuales, lazos en EE.UU., comunidad, cómo se ha mantenido' },
     ]
@@ -833,17 +850,23 @@ const SECTIONS = [
   { id:'s13', title:'Por qué no puede regresar', color:'#FBEAF0', numColor:'#4B1528',
     questions:[
       { id:'searchedAfter', q:'¿Sabe si las autoridades o perseguidores lo han buscado después de que salió? ¿Quién le contó? ¿Cuándo?', critical:true, placeholder:'Quién informó (familiar, amigo), cuándo ocurrió, qué preguntaron o hicieron los que buscaban' },
+      { id:'currentlyActive', q:'CRÍTICO (Matter of N-P-A- 2025, Matter of F-B-A- 2026): ¿Los perseguidores siguen ACTIVOS en el mismo cargo/posición y siguen INTERESADOS en usted DESPUÉS de tantos años? El BIA usa EN CONTRA del cliente el paso del tiempo (más de 2 años sin amenazas = relocalización razonable).', critical:true, placeholder:'Ej: Alias "El Mocho" sigue siendo comandante FARC en mi zona según noticias de 2024. El oficial Pérez sigue en la Seguridad del Estado de Sancti Spíritus. O: Aunque pasaron 3 años, mi familia recibió llamada en enero 2025 preguntando por mí — ESTO ES CRÍTICO para refutar el paso del tiempo.' },
       { id:'citations', q:'¿Han dejado citaciones, órdenes de arresto u otros documentos en su casa o con su familia?', critical:false, placeholder:'Tipo de documento, fecha aproximada, quién lo entregó' },
       { id:'whatWouldHappen', q:'¿Qué le pasaría específicamente si regresa? ¿Cómo lo sabe?', critical:true, placeholder:'Consecuencias concretas esperadas — detención, desaparición, muerte — y cómo sabe que eso ocurriría' },
       { id:'situationWorse', q:'¿La situación en su país ha mejorado o empeorado desde que salió? ¿Qué le cuentan sus familiares?', critical:true, placeholder:'Información actual directa — qué dicen familiares sobre la situación política o de seguridad' },
+      { id:'anticipateChangedConditions', q:'CRÍTICO (Matter of E-M-F-S- 2026, Matter of R-B-E- 2026): DHS argumentará que "cambiaron las condiciones del país" y por tanto no hay riesgo futuro. ¿Cómo refuta usted este argumento? El BIA en R-B-E- usó cambios fundamentales para denegar caso de haitiano Lavalas porque el régimen ya no existe.', critical:true, placeholder:'Ej: Aunque Pedro Castillo fue depuesto, sus seguidores siguen organizados según reportes 2024. O: Aunque hubo Acuerdo de Paz 2016, las disidencias rearmadas siguen siendo el mismo enemigo que mi familia tenía con FARC original. O: El régimen cubano NO ha cambiado en 60 años, mis perseguidores (Seguridad del Estado) siguen intactos.' },
       { id:'returnExamples', q:'¿Conoce personas que regresaron y sufrieron consecuencias? ¿Qué les pasó exactamente?', critical:false, placeholder:'Nombre o relación, qué les ocurrió al regresar, cuándo' },
     ]
   },
   { id:'s14', title:'Evidencia y documentos', color:'#FAEEDA', numColor:'#412402',
     questions:[
-      { id:'digitalThreats', q:'¿Tiene evidencia de la persecución? Incluya: mensajes de texto, WhatsApp, Facebook u otras redes con amenazas; fotos, videos o recortes de prensa de los eventos o sus consecuencias. Para cada elemento: plataforma o tipo, fecha, contenido aproximado y si aún tiene acceso.', critical:true, placeholder:'Ej: Tengo capturas de WhatsApp del 15 marzo 2018 donde me amenazan de muerte. Fotos de las heridas del evento 2. Video del registro de mi casa. Artículo del periódico local...' },
+      { id:'digitalThreats', q:'¿Tiene evidencia DIGITAL de la persecución? Incluya: mensajes de texto, WhatsApp, Facebook u otras redes con amenazas; fotos, videos o recortes de prensa de los eventos o sus consecuencias. Para cada elemento: plataforma o tipo, fecha, contenido aproximado y si aún tiene acceso.', critical:true, placeholder:'Ej: Tengo capturas de WhatsApp del 15 marzo 2018 donde me amenazan de muerte. Fotos de las heridas del evento 2. Video del registro de mi casa. Artículo del periódico local...' },
       { id:'medical', q:'¿Fue a un médico, hospital o psicólogo después de algún evento de persecución? ¿Tiene diagnóstico o récord médico?', critical:false, placeholder:'Nombre del médico o institución, fecha, diagnóstico (lesiones físicas, PTSD, etc.)' },
       { id:'witnesses', q:'¿Hay testigos que puedan declarar sobre los eventos? Nombres, relación y cómo contactarlos si es posible.', critical:false, placeholder:'Nombres, relación con el cliente, lo que presenciaron, si están en EE.UU. o en el país de origen' },
+      { id:'countryDocuments', q:'CORROBORACIÓN OFICIAL (Matter of G-C-I- 2025): Lista TODOS los documentos oficiales DEL PAÍS DE ORIGEN que puede aportar. (Cédula, pasaporte, denuncias policiales, sentencias, certificados militares, expedientes judiciales, registros gubernamentales). Para cada uno: ¿lo tiene físicamente, lo puede obtener, o por qué no puede obtenerlo?', critical:true, placeholder:'Ej: Tengo cédula colombiana original. Denuncia Fiscalía #2019-3456 puedo solicitar copia. Acta de retiro de la Policía Nacional la tengo. Sentencia de tutela 2018 está disponible en línea. Expediente militar 2015-2020 mi excompañero lo puede solicitar.' },
+      { id:'gapExplanation', q:'CRÍTICO (Matter of G-C-I- 2025): Si HAY documentos importantes que NO tiene y NO puede obtener, explique POR QUÉ. El REAL ID Act exige corroboración cuando es razonablemente obtenible. La FALTA de explicación destruye credibilidad.', critical:true, placeholder:'Ej: NO tengo el reporte policial porque la pandilla amenazó al fiscal cuando intenté denunciar. NO puedo obtener mi certificado médico porque el hospital fue destruido en 2021. NO puedo pedir mi expediente militar porque mi excompañero teme represalias si lo solicita.' },
+      { id:'psychEval', q:'IMPORTANTE (Matter of D-J-L- 2026): ¿Está dispuesto a una EVALUACIÓN PSICOLÓGICA con un profesional especializado en víctimas de tortura/trauma? Una evaluación psicológica BIEN HECHA (no por advocates con sesgo conocido) puede ser decisiva. El BIA RECHAZA evaluaciones de expertos con sesgo evidente de advocacy.', critical:false, placeholder:'Ej: SÍ, mi abogado va a contactar a la Dra. González del Center for Survivors of Torture en Houston. O: Ya tengo evaluación del Dr. Martínez fechada 2024 con diagnóstico PTSD severo, incluye prueba HTQ-25. O: NO he hecho evaluación aún por costo. La evaluación debe ser de profesional INDEPENDIENTE, NO un "advocate" conocido contra deportaciones.' },
+      { id:'socialMedia', q:'¿Tiene cuentas de REDES SOCIALES propias con contenido relevante? (Publicaciones políticas, expresión religiosa, identidad LGBTQ+, denuncias públicas). El gobierno PUEDE consultarlas como evidencia, A SU FAVOR o EN CONTRA. ¿Hay algo que el oficial NO debería ver?', critical:false, placeholder:'Ej: Tengo cuenta de Facebook con publicaciones contra Maduro desde 2017, las uso como prueba. Mi Twitter tiene 200 tweets contra el régimen. ADVERTENCIA: tengo fotos en Cuba sonriendo en eventos del partido — el oficial puede usar esto en contra. O: Borré mis redes por seguridad antes de salir.' },
     ]
   },
 ];
@@ -1043,8 +1066,10 @@ function getAdaptiveSections() {
     questions:[
       ...s8Questions,
       { id:'familyRetaliation', type:'familyEventBlock', label:'Cónyuge, hijos u otros familiares afectados' },
-      { id:'documents', q:'¿Recibió documentos oficiales relacionados a los eventos? (citaciones, multas, órdenes, expedientes)', critical:false,
-        placeholder:'Tipo de documento, quién lo emitió, fecha, número de expediente si recuerda, dónde están ahora...' },
+      { id:'whyChosen', q:'CRÍTICO (NEXUS - Matter of S-E-M-Z- 2026, Matter of L-A-L-T- 2025, Matter of K-E-S-G- 2025): Considerando TODOS los eventos descritos, ¿por qué ELLOS LO ELIGIERON A USTED y no a otra persona del mismo barrio, profesión, o país? Esta pregunta es la columna vertebral del caso de asilo. Si no hay nexus con razón protegida, el caso pierde.', critical:true,
+        placeholder:'Ej: Me eligieron específicamente porque (a) soy ex-policía retirado en 2019 que participó en operativo contra alias El Tigre, (b) mi familia es identificable como opositora desde 1990, (c) soy líder visible LGBTQ+ en mi municipio. NO basta "porque me vieron con plata" — eso es crimen común. NECESITA razón protegida (raza, religión, nacionalidad, opinión política, grupo social particular).' },
+      { id:'documents', q:'CORROBORACIÓN GENERAL (Matter of G-C-I- 2025): Resumen de TODOS los documentos oficiales relacionados a los eventos de persecución que puede aportar. (citaciones, multas, órdenes, expedientes, reportes policiales, certificados médicos, etc.)', critical:false,
+        placeholder:'Tipo de documento, quién lo emitió, fecha, número de expediente si recuerda, dónde están ahora, si puede obtener copia...' },
     ]
   };
 
@@ -1753,8 +1778,12 @@ function renderEventBlock(q) {
     { key:'quien',    label:'👤 ¿Quién lo hizo?',                  rows:2, placeholder:'Nombre, cargo y descripción física (altura, complexión, uniforme, tatuajes, armas que portaba)' },
     { key:'dijeron',  label:'💬 ¿Qué le dijeron? (textual)',       rows:3, placeholder:'Escriba entre comillas las palabras exactas que recuerde: "..."', required: isRequired },
     { key:'hicieron', label:'⚡ ¿Qué le hicieron?',               rows:3, placeholder:'Descripción física de lo que ocurrió — golpes, detención, registro, amenaza con arma, agresión sexual, etc.', required: isRequired },
-    { key:'nexo',     label:'🔗 ¿Por qué fue por usted?',          rows:2, placeholder:'¿Cómo sabe que fue por su opinión política / religión / familia? ¿Qué lo confirma?' },
-    { key:'testigos', label:'👥 Testigos',                         rows:1, placeholder:'Nombres y relación con el cliente, o "nadie presente"' },
+    { key:'capacidad',label:'⚠️ Capacidad inmediata del persecutor (Matter of E-M-F-S- 2026)', rows:2, placeholder:'¿El persecutor tenía la CAPACIDAD INMEDIATA de cumplir la amenaza? Tenía arma visible, contactos para localizarlo, autoridad para actuar. El BIA dice que amenazas SIN capacidad NO son persecución.' },
+    { key:'nexo',     label:'🔗 ¿Por qué fue por usted? (NEXUS)', rows:2, placeholder:'¿Cómo sabe que fue por su opinión política / religión / familia / grupo social? ¿Qué lo confirma? ¿Por qué LO ELIGIERON A USTED y no a otra persona?' },
+    { key:'testigos', label:'👥 Testigos en el lugar',             rows:1, placeholder:'Nombres y relación con el cliente, o "nadie presente"' },
+    { key:'usTestigos',label:'🇺🇸 Testigos AHORA en EE.UU. (Matter of G-C-I- 2025)', rows:2, placeholder:'¿Hay personas EN EE.UU. que SEPAN de este evento? (Familiares, amigos, ex-vecinos que ahora viven en EE.UU.). El BIA usa EN CONTRA del cliente si no presenta cartas de testigos en EE.UU. cuando los tiene disponibles.' },
+    { key:'medico',   label:'🩺 Atención médica (Matter of E-M-F-S- 2026)', rows:2, placeholder:'¿Buscó atención médica? Si NO: ¿por qué no? (Miedo, sin acceso, sin dinero, herida menor). Si SÍ: nombre del médico/hospital, fecha, diagnóstico. La FALTA de atención médica puede usarse en contra del cliente para minimizar gravedad.' },
+    { key:'documentos',label:'📄 Documentos del evento (Matter of G-C-I- 2025)', rows:2, placeholder:'¿Hay DOCUMENTOS que corroboren este evento? Reportes policiales, certificados médicos, fotos de heridas con fecha, recortes de prensa, expedientes judiciales. Si NO tiene: ¿por qué no y puede obtenerlos? REAL ID Act exige corroboración si es razonablemente obtenible.' },
     { key:'consecuencias', label:'💔 Consecuencias',              rows:2, placeholder:'Físicas (heridas, hospitalización), emocionales (trauma, insomnio), laborales (perdió empleo), familiares...' },
   ];
 
@@ -1764,8 +1793,12 @@ function renderEventBlock(q) {
     quien:        ['¿Conocía a esa persona antes del incidente?','¿Usaba uniforme, ropa civil o algo que lo identificara?','¿Mostró alguna credencial o identificación oficial?','¿Cómo se llamaba — escuchó su nombre o lo conocía del barrio?'],
     dijeron:      ['¿Recuerda alguna frase textual — aunque sea parte de lo que dijo?','¿Mencionó su nombre, el de algún familiar, o alguna organización?','¿Usó palabras políticas como "gusano", "traidor", "contrarrevolucionario", "opositor"?'],
     hicieron:     ['¿Hubo contacto físico — golpes, empujones, sujeción por la fuerza?','¿Usó algún arma o instrumento para amenazarlo?','¿Tuvo que ir a un médico o hospital después?','¿Quedó con alguna marca, lesión o consecuencia física visible?'],
-    nexo:         ['¿Le dijeron explícitamente por qué lo elegían a usted?','¿Había algo que lo distinguía de otras personas en ese lugar?','¿Había tenido contacto previo con esa persona o esa organización?'],
+    capacidad:    ['¿El persecutor tenía arma en ese momento o demostró acceso a armas?','¿Tenía contactos (policía, gobierno, vecinos) que le permitían localizarlo?','¿Hizo seguimiento después — apareció en su casa, trabajo, llamó?','¿Conoce a otras personas a quienes el mismo persecutor cumplió la amenaza?'],
+    nexo:         ['¿Le dijeron explícitamente por qué lo elegían a usted?','¿Había algo que lo distinguía de otras personas en ese lugar (etnia, religión, opinión, familia)?','¿Había tenido contacto previo con esa persona o esa organización?','¿Por qué USTED y no otra persona del mismo barrio/profesión?'],
     testigos:     ['¿Había personas presentes aunque no intervinieran?','¿Alguien lo vio llegar o salir del lugar?','¿Le contó a alguien inmediatamente después — familiar, amigo, vecino?'],
+    usTestigos:   ['¿Algún familiar o amigo en EE.UU. tiene conocimiento directo de este evento?','¿Estarían dispuestos a escribir declaración jurada (affidavit)?','¿Cómo se enteraron — usted les contó, lo presenciaron antes de migrar, lo supieron por otros familiares?','Importante: si NO los menciona y existen, el juez puede asumir que el cliente oculta información.'],
+    medico:       ['Si NO buscó atención: ¿por qué? (miedo a represalias, sin acceso, sin dinero, gravedad menor, no quería que quedara registro)','Si SÍ buscó: ¿nombre del médico u hospital, dirección, fecha exacta?','¿Le dieron diagnóstico escrito, receta, informe?','¿Puede solicitar copia del expediente médico ahora?'],
+    documentos:   ['¿Existe REPORTE POLICIAL? Si lo hizo: número de denuncia, fecha, estación. Si no lo hizo: ¿por qué?','¿Hay FOTOS de heridas, daños materiales, o del lugar después del evento?','¿Salió en PRENSA local? Nombre del periódico, fecha aproximada, titular.','¿Tiene MENSAJES (WhatsApp, SMS, email) relacionados al evento — antes, durante o después?'],
     consecuencias:['¿Tuvo que cambiar algún hábito o rutina después de este evento?','¿Afectó su trabajo, sus estudios o su vida familiar?','¿Desarrolló problemas de sueño, ansiedad o miedo constante?'],
   };
 
@@ -2239,12 +2272,16 @@ RESPUESTAS DEL CUESTIONARIO (prioridad máxima):` : 'DATOS DEL CLIENTE:'}
 
 DATOS PERSONALES:
 - Nombre: ${get('name') || '[PENDIENTE: nombre completo]'}
+- Alias o nombres falsos usados (Matter of R-A-U-): ${get('aliases') || 'no indicado — VERIFICAR antes de declaración'}
 - Fecha de nacimiento: ${get('dob') || '[PENDIENTE: fecha de nacimiento]'}
 - Ciudad de nacimiento: ${get('birthCity') || '[PENDIENTE: ciudad de nacimiento]'}
 - País: ${country}
+- Lengua materna / intérprete: ${get('language') || 'no indicado'}
 - A-Number: ${get('anumber') || 'pendiente'}
 - Estado civil y cónyuge (si aplica): ${get('marital') || '[PENDIENTE: estado civil]'}
 - Dirección en EE.UU.: ${get('usAddress') || 'no especificada'}
+- Aplicaciones de asilo previas en otros países (Matter of R-A-U-): ${get('previousAsylum') || '[VERIFICAR: aplicaciones previas en cualquier país]'}
+- Entrevistas previas con oficiales EE.UU. y contenido (Matter of G-C-I-): ${get('cfiInterviews') || '[VERIFICAR: CFI, USCIS, ICE]'}
 
 FAMILIA:
 - Hijos / hijastros: ${get('children') || 'no indicados'}
@@ -2252,20 +2289,43 @@ FAMILIA:
 - Padre: ${get('fatherName') || '[PENDIENTE: nombre y residencia del padre]'}
 - Madre: ${get('motherName') || '[PENDIENTE: nombre y residencia de la madre]'}
 - Hermanos: ${get('siblings') || 'no indicados'}
+- Grupo étnico/religioso/minoritario (Matter of K-E-S-G- narrowing): ${get('minorityGroup') || '[CRÍTICO: verificar narrowing features para PSG]'}
 - Persecución familiar (antecedentes + represalias): ${get('familyPersecution') || '[PENDIENTE: ¿algún familiar fue perseguido?]'}
+- Familiares EN EE.UU. como testigos (Matter of G-C-I-): ${get('familyUSWitnesses') || '[CRÍTICO: ¿tiene familiares en EE.UU. que pudieran ser testigos?]'}
+- Documentos oficiales de persecución familiar: ${get('familyDocuments') || ''}
 
 EDUCACIÓN:
 - Historial educativo completo: ${get('education') || get('primary') || '[PENDIENTE: historial educativo]'}
+- Documentos académicos disponibles (Matter of G-C-I-): ${get('educationDocuments') || ''}
 - Educación negada o discriminación educativa: ${get('educationDenied') || ''}
 
 PROFESIÓN:
 - Profesión: ${get('profession') || '[PENDIENTE: profesión]'}
+- Título/licencia profesional: ${get('professionalLicense') || ''}
 - Trabajo / negocio propio: ${get('workplace') || ''}
+- Documentos laborales disponibles: ${get('workDocuments') || ''}
 
 PERSECUCIÓN:
 - Motivo: ${groundLabels[groundType]}
 - Persecutores: ${get('persecutors') || '[PENDIENTE: quiénes persiguieron]'}
-- Afiliación política: ${get('politicalAffil') || ''}
+- POR QUÉ LO ELIGIERON ESPECÍFICAMENTE (gangs/colombia/other) — NEXUS: ${get('whyYouSpecifically') || get('reasonOfPersecution') || ''}
+- Narrowing features (K-E-S-G-): ${get('narrowingFeatures') || ''}
+- Control territorial / de facto government (D-G-E-A-): ${get('deFactoControl') || ''}
+- Policía/autoridades cómplices del persecutor: ${get('policeComplicity') || ''}
+- Acciones de oposición pública: ${get('opposingActions') || ''}
+- Honduras ACA aplicable: ${get('hondurasACA') || ''}
+- Actual vs former status (O-A-R-G- crítico Colombia): ${get('currentOrFormer') || ''}
+- Pre/post Acuerdo de Paz 2016 (Colombia): ${get('peaceAccord') || ''}
+- Otras víctimas similares (Colombia patrón): ${get('similarVictims') || ''}
+- Respuesta del gobierno (UNP Colombia, etc.): ${get('governmentResponse') || ''}
+- Afiliación política (Haití PHTK/Lavalas): ${get('politicalAffiliation') || ''}
+- Colapso institucional (Haití): ${get('governmentCollapse') || ''}
+- Riesgo retornado (Haití D-J-L-): ${get('returneeRisk') || ''}
+- Razón protegida (other): ${get('protectedGround') || ''}
+- Rol del gobierno como persecutor (other A-B-): ${get('governmentRole') || ''}
+- Alcance nacional del persecutor (other S-E-M-Z-): ${get('nationalReach') || ''}
+- Reasentamiento previo en otro país (other R-A-U-): ${get('pastResettlement') || ''}
+- Afiliación política (régimen): ${get('politicalAffil') || ''}
 - Protestas: ${get('protests') || ''}
 - Presión informante: ${get('informant') || ''}
 - Organizaciones negadas: ${get('organizations') || ''}
@@ -2275,8 +2335,8 @@ PRIMERA SEÑAL:
 ${get('firstEvent') || '[PENDIENTE: primer evento o señal temprana]'}
 ${get('childhoodDiscrim') || ''}
 
-EVENTOS DE PERSECUCIÓN:
-${['event1','event2','event3','event4'].map((id,i) => {
+EVENTOS DE PERSECUCIÓN (con campos BIA-críticos):
+${['event1','event2','event3','event4','event5','event6','event7','event8','event9','event10','event11','event12','event13','event14','event15'].map((id,i) => {
   const raw = get(id);
   if (!raw) return i===0 ? '[PENDIENTE: descripción del primer evento]' : '';
   try {
@@ -2289,13 +2349,19 @@ ${['event1','event2','event3','event4'].map((id,i) => {
 - Quién / descripción física: ${d.quien||'[PENDIENTE: descripción del agresor]'}
 - Qué dijeron textualmente: ${d.dijeron||'[PENDIENTE: palabras exactas]'}
 - Qué le hicieron: ${d.hicieron||'[PENDIENTE: descripción del acto]'}
-- Por qué fue por el motivo de asilo: ${d.nexo||''}
-- Testigos: ${d.testigos||''}
+- Capacidad inmediata del persecutor (E-M-F-S-): ${d.capacidad||''}
+- Por qué fue por usted (NEXUS): ${d.nexo||''}
+- Testigos en el lugar: ${d.testigos||''}
+- Testigos AHORA en EE.UU. (G-C-I-): ${d.usTestigos||''}
+- Atención médica buscada (E-M-F-S-): ${d.medico||''}
+- Documentos del evento (G-C-I- corroboración): ${d.documentos||''}
 - Consecuencias: ${d.consecuencias||''}`;
   } catch(e) {
     return `EVENTO ${i+1}: ${raw}`;
   }
 }).filter(Boolean).join('\n\n')}
+
+NEXUS GENERAL — POR QUÉ LO ELIGIERON A USTED (Matter of S-E-M-Z-, L-A-L-T-, K-E-S-G-): ${get('whyChosen') || '[CRÍTICO: la declaración debe responder explícitamente por qué eligieron a este cliente]'}
 
 FAMILIA DIRECTA AFECTADA (cónyuge / hijos / familiares):
 ${(() => {
@@ -2307,7 +2373,7 @@ ${(() => {
     return `- Quién: ${d.quien||''}\n- Cuándo y dónde: ${d.cuando||''}\n- Qué les ocurrió: ${d.queOcurrio||''}\n- Conexión con el caso: ${d.represalia||''}`;
   } catch(e) { return raw; }
 })()||''}
-Documentos recibidos: ${get('documents') || ''}
+Documentos generales recibidos: ${get('documents') || ''}
 
 DECISIÓN DE SALIR:
 - Evento detonante: ${get('trigger') || '[PENDIENTE: evento detonante]'}
@@ -2315,35 +2381,48 @@ DECISIÓN DE SALIR:
 - Tiempo antes de salir: ${get('timeBefore') || ''}
 - Preparación de salida: ${get('whoKnew') || ''}
 
-PROTECCIÓN INTERNA:
+PROTECCIÓN INTERNA (REESTRUCTURADO BIA 2026):
 - Por qué no denunció / intentos de denuncia: ${get('whyNoPolice') || '[PENDIENTE: por qué no fue a la policía]'}
-- Por qué no se mudó: ${get('whyNoMove') || '[PENDIENTE: por qué no se mudó internamente]'}
+- Intentos de relocalización (F-B-A-, V-A-B-): ${get('relocationAttempt') || get('whyNoMove') || '[PENDIENTE: ¿intentó mudarse?]'}
+- Alcance nacional del persecutor (S-E-M-Z-): ${get('nationalReach') || ''}
+- Tamaño del país considerado (F-B-A-): ${get('countrySize') || ''}
+- Apoyo institucional disponible: ${get('institutionalSupport') || ''}
+- Evidencia documental de complicidad policial (V-A-B-): ${get('policeComplicityEvidence') || ''}
 
 VIAJE:
 - Fecha y punto de salida: ${get('departureDate') || '[PENDIENTE: fecha de salida]'}
 - Ruta: ${get('route') || '[PENDIENTE: países cruzados]'}
 - Incidentes en viaje: ${get('travelIncidents') || ''}
 - Por qué no asilo en tránsito: ${get('whyNoAsylumTransit') || '[PENDIENTE: por qué no pidió asilo en tránsito]'}
+- Aplicaciones de asilo en tránsito (R-A-U-, C-I-G-M-): ${get('transitAsylumApplications') || '[VERIFICAR: aplicaciones en tránsito]'}
 
 LLEGADA A EE.UU.:
 - Fecha y lugar de entrada: ${get('entryDate') || '[PENDIENTE: fecha y lugar de entrada]'}
 - Cómo fue recibido: ${get('detained') || ''}
+- Contenido del CFI (G-C-I-/R-A-U- crítico): ${get('cfiContent') || '[CRÍTICO: anticipar consistencia con CFI]'}
+- Notas/transcripción del CFI: ${get('cfiNotes') || ''}
 - Fecha en corte: ${get('courtDate') || ''}
 - Vida en EE.UU.: ${get('lifeInUS') || ''}
 
 POR QUÉ NO PUEDE REGRESAR:
 - Lo han buscado después: ${get('searchedAfter') || '[PENDIENTE: ¿lo buscaron después de que salió?]'}
+- Perseguidores siguen activos (N-P-A-, F-B-A-): ${get('currentlyActive') || ''}
 - Citaciones post-salida: ${get('citations') || ''}
 - Qué pasaría si regresa: ${get('whatWouldHappen') || '[PENDIENTE: consecuencias de regresar]'}
 - Situación actual del país: ${get('situationWorse') || ''}
+- Anticipar argumento DHS de changed circumstances (E-M-F-S-, R-B-E-): ${get('anticipateChangedConditions') || '[CRÍTICO: anticipar argumento de DHS]'}
 - Ejemplos de personas que regresaron: ${get('returnExamples') || ''}
 
-EVIDENCIA:
-- Fotos/videos: ${get('photos') || ''}
-- Evidencia (digital, fotos, videos, prensa): ${get('digitalThreats') || ''}
-- Documentos oficiales: ${get('officialDocs') || ''}
-- Atención médica: ${get('medical') || ''}
-- Testigos: ${get('witnesses') || ''}
+EVIDENCIA (REESTRUCTURADO BIA 2026):
+- Evidencia digital (mensajes, fotos, videos, prensa): ${get('digitalThreats') || ''}
+- Atención médica disponible: ${get('medical') || ''}
+- Testigos disponibles: ${get('witnesses') || ''}
+- Documentos del país de origen (G-C-I- corroboración): ${get('countryDocuments') || ''}
+- Explicación de documentos faltantes (G-C-I- gap): ${get('gapExplanation') || ''}
+- Evaluación psicológica (D-J-L-): ${get('psychEval') || ''}
+- Redes sociales propias relevantes: ${get('socialMedia') || ''}
+- Fotos/videos adicionales: ${get('photos') || ''}
+- Documentos oficiales adicionales: ${get('officialDocs') || ''}
 
 ${hasTranscript ? `
 TRANSCRIPCIÓN DE LA LLAMADA (usar SOLO para complementar lo que no esté en el cuestionario):
@@ -2604,106 +2683,164 @@ ORDEN OBLIGATORIO DE LA NARRATIVA:
 14. Por qué no puede regresar — evidencia concreta de búsqueda activa
 15. Cierre emocional
 
-═══ ESTÁNDARES LEGALES APLICABLES — MARCO DEL DERECHO DE ASILO ═══
+═══ ESTÁNDARES LEGALES APLICABLES — MARCO DEL DERECHO DE ASILO (ACTUALIZADO BIA 2025-2026) ═══
+
+⚠️ CONTEXTO 2026 — JURISPRUDENCIA RECIENTE QUE CAMBIA EL JUEGO:
+La jurisprudencia BIA 2025-2026 ha endurecido significativamente los estándares de asilo. La declaración DEBE anticipar estos cambios y construirse para superar el escrutinio actual. Decisiones clave que afectan TODA declaración escrita en 2026:
+- Matter of S-S-F-M- (AG 2025): REINSTAURA Matter of A-B- I y II. Casos de violencia doméstica y persecución por actores privados MUCHO más difíciles. Matter of A-R-C-G- (2014) está OVERRULED.
+- Matter of K-E-S-G- (BIA 2025): PSG basado en SEXO o SEXO+NACIONALIDAD por sí solo NO es cognoscible. Necesita narrowing features adicionales.
+- Matter of L-A-L-T- (BIA 2025): PSG "perceived gang members" NO es cognoscible. El grupo subyacente debe ser cognoscible.
+- Matter of S-E-M-Z- (BIA 2026, Junio): Social distinction debe medirse COUNTRYWIDE, no por vecindario. Indiscriminate harm = no nexus.
+- Matter of D-G-E-A- (BIA 2026): Oposición a pandillas NO es opinión política. Pandillas centroamericanas NO son "de facto government".
+- Matter of E-M-F-S- (BIA 2026): Amenazas de muerte SOLAS rara vez son persecución. Necesita capacidad inmediata objetiva del persecutor.
+- Matter of G-C-I- (BIA 2025): Testimonio evasivo + falta de corroboración = denial. Familiares en EE.UU. que no testifican = usado EN CONTRA.
+- Matter of R-A-U- (BIA 2026): Aplicaciones previas en otros países + nombres falsos = credibilidad destruida.
+- Matter of F-B-A- (BIA 2026): Adultos NO pueden invocar "barreras de niños". Países grandes + sin contacto 2+ años = reubicación razonable.
+- Matter of O-A-R-G- (BIA 2025): Para PSG "former status", animus debe ser contra el GRUPO de former status, no represalia individual por conducta pasada.
+- Matter of V-A-B- (BIA 2026): "Mujeres mexicanas casadas sin poder dejar relación" NO cognoscible (circular). Habilidades laborales cuentan CONTRA reubicación.
+- Matter of C-I-G-M- (BIA 2025): EE.UU.-Honduras ACA aplica retroactivamente. Guatemaltecos pueden ser enviados a Honduras.
+- Matter of D-J-L- (BIA 2026): Expertos con sesgo de advocacy = peso significativo es error.
+- Matter of S-M-H- (BIA 2026): Frivolousness — warnings escritos en I-589 son suficientes. NO statute of limitations.
+- Matter of H-A-A-V- (BIA 2025) + EOIR PM 25-28: Jueces PUEDEN pretermitir aplicaciones sin audiencia si no establecen prima facie.
 
 1. NEXO CAUSAL — el elemento central de toda declaración:
 - El motivo protegido solo necesita ser UNA razón, no la única ni la principal (Matter of J-B-N-)
 - Las palabras del persecutor durante los hechos SON el nexo más poderoso: si lo llamaron "contrarrevolucionario", "traidor", "gusano", "antirevolucionario", o mencionaron su familia, religión o partido — esas palabras exactas deben aparecer entre comillas en la declaración
+- ⚠️ NUEVO 2026 (Matter of S-E-M-Z-): "Indiscriminate harm has no nexus to a protected ground". La declaración debe explicar POR QUÉ ELIGIERON A ESTE CLIENTE específicamente y no a otra persona del mismo barrio/profesión.
 - PRINCIPIO ESTABLECIDO: cuando agentes estatales usan epítetos políticos ("contrarrevolucionario", "traidor") mientras agreden o detienen al solicitante, esas palabras establecen nexo de opinión política imputada de manera contundente
 - PRINCIPIO ESTABLECIDO: etiquetar a alguien de "traidor" o "contra-revolucionario" por abandonar un partido oficial establece nexo de opinión política imputada
-- PRINCIPIO ESTABLECIDO: cuando militares o agentes acusan al solicitante de estar "contra el gobierno" y el solicitante se distancia explícitamente del régimen, eso confirma el nexo
 - Si coexiste motivo económico/criminal con motivo protegido, explicar ambos y establecer que el protegido fue central
 
-2. OPINIÓN POLÍTICA — definición amplia en jurisprudencia:
+2. OPINIÓN POLÍTICA — definición amplia pero MÁS RESTRICTIVA en 2026:
+- ⚠️ NUEVO 2026 (Matter of D-G-E-A-): "Disapproval of or opposition to criminal gangs is NOT sufficient to establish a political opinion". Para opinión política contra pandillas, debe demostrarse que las pandillas son DE FACTO GOVERNMENT (ejercen "actual sovereignty or control" sobre el territorio). El BIA dice que MS-13, Barrio 18, maras NO son de facto government.
 - Negarse a unirse a la UJC, CDR, PSUV, Partido Comunista, o cualquier organización del régimen = opinión política
 - Negarse a votar en referéndum o participar en actos políticos = opinión política
 - Negarse a publicar propaganda del gobierno o criticar políticas del Estado = opinión política imputada
 - Criticar la economía, el desempleo, la gestión del gobierno, las relaciones exteriores = opinión política
 - No es necesario expresar la opinión públicamente — basta con que el persecutor la imputara
-- PRINCIPIO ESTABLECIDO: profesionales (médicos, maestros, ingenieros) que se nieguen a hacer política a favor del régimen pueden ser perseguidos por opinión política, cuando el gobierno los cataloga como "contrarios al sistema"
-- PRINCIPIO ESTABLECIDO: abuso sexual por funcionario estatal que luego amenaza con consecuencias por negarse a participar en actos políticos = nexo político
+- Whistleblowing contra corrupción gubernamental = opinión política si va más allá de auto-protección
+- PRINCIPIO ESTABLECIDO: profesionales (médicos, maestros, ingenieros) que se nieguen a hacer política a favor del régimen pueden ser perseguidos por opinión política
+- PARA CASOS CENTROAMERICANOS: enfocar PSG (familia, etnia, religión, LGBTQ+) en vez de opinión política contra pandillas
 
-3. PERSECUCIÓN ECONÓMICA Y NO-FÍSICA — también cuenta:
+3. PERSECUCIÓN — UMBRAL MÁS ALTO EN 2026:
+- ⚠️ NUEVO 2026 (Matter of E-M-F-S-): "Death threats alone rarely rise to the level of persecution and only do so if they are objectively credible and issued by a person or persons with the immediate ability to carry them out". La declaración debe demostrar OBJETIVAMENTE que el persecutor tenía capacidad inmediata de ejecutar (arma visible, red de contactos, autoridad institucional).
+- ⚠️ NUEVO 2026 (Matter of A-H-D-): Detención de 3 días con golpiza única SIN lesiones significativas NO es persecución. Para persecución por detención + violencia: detención prolongada O lesiones significativas O patrón.
 - Negar sistemáticamente el empleo por motivos políticos = persecución
 - Amenazar con encarcelamiento si vuelve a trabajar = persecución
 - Pérdida del trabajo + expulsión académica + restricciones económicas graves = persecución acumulativa
-- No se requiere daño físico para establecer persecución pasada (Matter of T-Z-)
+- No se requiere daño físico para establecer persecución pasada (Matter of T-Z-) — PERO si SOLO hay amenazas, ver Matter of E-M-F-S- arriba
+- Múltiples detenciones + amenazas de muerte + vigilancia intensa + restricciones laborales = persecución acumulativa, aunque cada incidente solo no alcanzaría
 
-4. PERSECUCIÓN ACUMULATIVA — patrón de eventos:
+4. PARTICULAR SOCIAL GROUP (PSG) — ESTÁNDAR DRÁSTICAMENTE MÁS ESTRICTO EN 2026:
+- ⚠️ NUEVO 2026 (Matter of K-E-S-G-): PSG basado SOLO en sexo o sexo+nacionalidad ("Mujeres salvadoreñas", "Hombres hondureños") NO es cognoscible. NECESITA narrowing features: edad específica, posición en sociedad/economía, etnia, religión, etc.
+- ⚠️ NUEVO 2026 (Matter of S-E-M-Z-): Social distinction debe medirse COUNTRYWIDE, NO por vecindario o ciudad. La familia debe ser distinguible NACIONALMENTE.
+- ⚠️ NUEVO 2026 (Matter of L-A-L-T-): PSG "perceived" o "imputed" solo es cognoscible si el GRUPO SUBYACENTE es cognoscible. "Perceived gang members" NO es cognoscible porque "gang members" tampoco lo es.
+- ⚠️ NUEVO 2026 (Matter of V-A-B-): "Mujeres casadas que no pueden dejar relación" NO es cognoscible (definición circular). El grupo debe existir INDEPENDIENTEMENTE del daño.
+- ⚠️ NUEVO 2026 (Matter of S-S-F-M-): Matter of A-R-C-G- está OVERRULED. Casos de violencia doméstica como PSG son MUCHO más difíciles.
+- ⚠️ NUEVO 2026 (Matter of O-A-R-G-): Para PSG "former status" (ex-policías, ex-militares, ex-funcionarios), el animus debe ser contra el GRUPO de ex-funcionarios COMO CLASE, no represalia individual por conducta pasada específica. Reprisals "as a class" (ej: post-coup, post-rearme guerrillero) sí elegibles.
+- Familia como PSG sigue siendo cognoscible PERO debe tener "greater societal import" más allá del barrio o de los persecutores
+
+5. PERSECUCIÓN ACUMULATIVA — patrón de eventos:
 - Múltiples detenciones + amenazas de muerte + vigilancia intensa + restricciones laborales = persecución, aunque cada incidente solo no alcanzaría
 - PRINCIPIO ESTABLECIDO: 60+ visitas de seguridad estatal en 2 años + detenciones cortas repetidas + amenazas de muerte = persecución por acumulación
-- Para construir el patrón: narrar cada evento en orden cronológico, luego incluir un párrafo de cierre: "Considerando todos estos hechos en conjunto, lo que viví fue una campaña sistemática de hostigamiento que me causó [impacto en su vida]"
+- Para construir el patrón: narrar cada evento en orden cronológico, luego incluir un párrafo de cierre: "Considerando todos estos hechos en conjunto, lo que viví fue una campaña sistemática de hostigamiento"
 
-5. FAMILIA COMO MOTIVO (PSG familiar):
-- La pregunta legal central es: ¿por qué eligieron a ESTA persona específica, y no a otra? — la respuesta puede ser su relación familiar
-- Si el persecutor mencionó explícitamente al familiar durante la amenaza: esas palabras son el nexo
-- PRINCIPIO ESTABLECIDO: cuando pandilleros o agentes dicen explícitamente que persiguen al solicitante "por su relación con [familiar]", eso establece nexo familiar suficiente
-- Si amenazan al solicitante para que revele la ubicación de un familiar perseguido: eso establece nexo familiar
-- El motivo económico/criminal del persecutor NO elimina el nexo familiar si la familia fue el factor que hizo al solicitante elegible para el ataque
-- Familia de activista político como PSG cognoscible es reconocido en la jurisprudencia
-
-6. POR QUÉ NO DENUNCIÓ — marco legal:
-- NO se requiere escalar la denuncia a múltiples estaciones o instancias superiores después de ser rechazado por la primera (Matter of C-G-T-)
-- El estándar legal es "inacción deliberada o complicidad tácita" — no se requiere demostrar colusión formal
-- Denunciar era PELIGROSO (no solo inútil) = razón suficiente y legalmente válida para no ir (Matter of C-G-T-)
+6. POR QUÉ NO DENUNCIÓ — marco legal (ENDURECIDO 2026):
+- ⚠️ NUEVO 2026 (Matter of K-S-H-): UN SOLO intento de reportar a policía local SIN evidencia de colusión amplia NO establece que el gobierno como un todo es unable/unwilling. Si el cliente no intentó múltiples veces O no tiene evidencia documental de complicidad, esto es debilidad.
+- ⚠️ NUEVO 2026 (Matter of F-B-A-): Adultos NO pueden invocar "barreras únicas" de niños (Matter of C-G-T-). Esto SOLO aplica a niños.
+- NO se requiere escalar la denuncia a múltiples estaciones si las primeras fueron PELIGROSAS (no solo inútiles)
+- Denunciar era PELIGROSO (no solo inútil) = razón suficiente y legalmente válida para no ir
 - Si los mismos que persiguieron son los que mandan en la estación de policía: incluir nombre y cargo de quien rechazó la denuncia y su relación con el persecutor
 - Si el gobierno ES el persecutor (Cuba, Venezuela, Nicaragua): el solicitante NO está obligado a denunciar al persecutor ante sí mismo
 - PRINCIPIO ESTABLECIDO: cuando el policía explícitamente advierte al solicitante que si denuncia "las pandillas lo matarán", eso configura "peligroso", no solo "inútil"
 
-7. CREDIBILIDAD — factores protectores:
-- Dar más detalles en juicio que en la entrevista de miedo creíble NO destruye la credibilidad si el solicitante da una explicación (ej: temor a que el régimen acceda a sus datos)
-- Errores menores de fechas o detalles NO destruyen la credibilidad si el solicitante los explica y el resto del relato es consistente
-- La declaración escrita coherente con el testimonio oral = credibilidad reforzada
-- EVITAR en la declaración: inconsistencias internas, fechas que se contradicen entre secciones, nombres que cambian
+7. CREDIBILIDAD — ENDURECIMIENTO MASIVO EN 2026:
+- ⚠️ CRÍTICO (Matter of G-C-I-): Testimonio EVASIVO o no responsivo = adverse credibility. Falta de corroboración cuando es razonablemente obtenible = INDEPENDIENTEMENTE base para denial. Si tiene familiares EN EE.UU. que pudieron escribir declaración y NO lo hicieron, el BIA lo usa EN CONTRA.
+- ⚠️ CRÍTICO (Matter of R-A-U-): Inconsistencias entre CFI y testimonio + aplicaciones previas en otros países (que el cliente omitió) + uso de nombres falsos = credibilidad DESTRUIDA. La declaración DEBE mencionar y explicar:
+  (a) Cualquier aplicación previa en otro país (México COMAR, Alemania, ACNUR, etc.)
+  (b) Cualquier nombre/alias usado anteriormente
+  (c) Cualquier inconsistencia anticipable entre CFI y declaración actual
+- Dar más detalles en juicio que en la entrevista de miedo creíble NO destruye la credibilidad si el solicitante da una explicación clara (ej: temor a represalias de oficiales, idioma, trauma)
+- Errores menores de fechas o detalles NO destruyen la credibilidad si el solicitante los explica
+- EVITAR: inconsistencias internas, fechas que se contradicen, nombres que cambian
 
-8. MIEDO FUNDADO — umbrales legales:
+8. CORROBORACIÓN — EXIGENCIA EXPANDIDA 2026:
+- ⚠️ NUEVO 2026 (Matter of G-C-I-): REAL ID Act anticipa que corroboración GENERALMENTE será necesaria. La AUSENCIA de documentación razonablemente obtenible es BASE INDEPENDIENTE para denial.
+- La declaración debe mencionar TODOS los documentos disponibles (escolares, laborales, médicos, policiales, familiares) o EXPLICAR por qué NO se pueden obtener
+- Testigos en EE.UU. (familiares, amigos, ex-vecinos) SON corroboración esperada. Si existen y NO escribieron declaración, esto se interpreta en CONTRA del cliente
+- Evaluaciones psicológicas DEBEN ser de profesionales independientes (no advocates), específicos en trauma/asilo
+- ⚠️ NUEVO 2026 (Matter of D-J-L-): Expertos con sesgo conocido de advocacy contra deportaciones = peso significativo es error reversible
+
+9. MIEDO FUNDADO — umbrales legales:
 - Solo se necesita un 10% de probabilidad de persecución futura para establecer miedo fundado (Knezevic v. Ashcroft)
 - PRINCIPIO ESTABLECIDO: cuando el contexto del país combinado con el patrón personal de conducta del solicitante establecen una amenaza concreta, el riesgo NO es "especulativo"
-- Evidencia de ataque a persona en situación similar hace que las amenazas sean más creíbles y suficientes
 - Si hubo persecución pasada probada: se presume el miedo a futuro y es DHS quien debe rebatir (Matter of D-I-M-)
+- ⚠️ NUEVO 2026 (Matter of R-B-E-): Cambio fundamental de circunstancias REFUTA presunción. Para casos haitianos Lavalas, post-FARC Colombia, post-Castillo Perú, etc., la declaración DEBE anticipar este argumento del DHS y refutarlo específicamente.
+- ⚠️ NUEVO 2026 (Matter of N-P-A-): Citaciones pretextuales SIN que el solicitante (o familiares en igual situación) reciba daño DESPUÉS, + capacidad de salir libremente del país = NO miedo fundado.
 
-9. PAÍS DE TRÁNSITO — no es razón para negar:
+10. PAÍS DE TRÁNSITO — endurecido 2026:
 - No haber pedido asilo en países de tránsito NO es por sí solo motivo de negación
+- ⚠️ NUEVO 2026 (Matter of C-I-G-M-): EE.UU. firmó ACA con HONDURAS (Marzo 10, 2025). Solicitantes guatemaltecos y de otros países pueden ser enviados a Honduras antes de evaluar asilo. La declaración DEBE explicar (si aplica) por qué Honduras no es seguro para el solicitante específico.
+- ⚠️ NUEVO 2026 (Matter of R-A-U-): Aplicaciones previas en países de tránsito DEBEN mencionarse explícitamente. Omitirlas = credibilidad destruida.
 - La declaración debe explicar brevemente por qué en cada país no había protección real
 - El objetivo siempre fue EE.UU. como sistema legal efectivo de protección
 
-10. CUANDO EL GOBIERNO ES EL PERSECUTOR (Cuba, Venezuela, Nicaragua):
+11. CUANDO EL GOBIERNO ES EL PERSECUTOR (Cuba, Venezuela, Nicaragua):
 - El solicitante NO necesita demostrar que el gobierno es "incapaz o no quiere protegerlo" — el gobierno ES el persecutor
 - La reubicación interna SE PRESUME IRRAZONABLE cuando el persecutor es el propio Estado (8 C.F.R. § 1208.13(b)(3)(ii))
-- Después de salir del país, si familiares reportan que el régimen sigue buscando al solicitante: incluir nombre del familiar, fecha y lo que los agentes dijeron cuando fueron a buscarlo
-- PRINCIPIO ESTABLECIDO: negarse a ser informante de la policía contra una comunidad religiosa propia = nexo religioso Y político simultáneamente
-- PRINCIPIO ESTABLECIDO: una citación criminal o procesal posterior a la salida del país = evidencia poderosa de persecución futura
+- Después de salir del país, si familiares reportan que el régimen sigue buscando: incluir nombre del familiar, fecha y lo que los agentes dijeron
+- PRINCIPIO ESTABLECIDO: una citación criminal posterior a la salida = evidencia poderosa de persecución futura
 - PRINCIPIO ESTABLECIDO: poder salir del país por canales regulares NO destruye el miedo fundado
 
-11. FAMILIARES SIN DAÑO — anticipando el argumento más común:
+12. FAMILIARES SIN DAÑO — anticipando el argumento más común:
+- ⚠️ NUEVO 2026 (Matter of E-N-N-, Matter of F-B-A-, Matter of R-B-E-): Familiares ilesos en el país de origen CONTRADICE patrón de persecución. La declaración DEBE explicar POR QUÉ el cliente es diferente de familiares que no han sido atacados.
 - Si el juez dice "su familia quedó en el país sin daño, por lo tanto usted no tiene miedo fundado" — ese argumento solo es válido si la familia está en la MISMA posición que el solicitante
-- La declaración DEBE incluir un párrafo explicando por qué el solicitante tiene características específicas que sus familiares no tienen: activismo político más visible, negocio, ser testigo directo, haber desertado, haber negado unirse al grupo, haber sido identificado personalmente
-- PRINCIPIO ESTABLECIDO: cuando el solicitante tiene perfil de activismo (ej: canal de redes sociales, militancia visible, denuncia pública) que su familia NO tiene, su miedo personal es independiente del estado de la familia
+- La declaración DEBE incluir un párrafo explicando características específicas que sus familiares no tienen: activismo más visible, negocio, ser testigo directo, haber desertado, haber sido identificado personalmente
+- PRINCIPIO ESTABLECIDO: cuando el solicitante tiene perfil de activismo que su familia NO tiene, su miedo es independiente del estado de la familia
 
-12. PERSECUCIÓN POR UN SOLO EVENTO GRAVE — no requiere patrón:
-- Una violación o agresión sexual por agentes estatales = persecución por sí sola, no requiere "ataque sostenido"
-- PRINCIPIO ESTABLECIDO: violación por policías o militares por sí sola constituye persecución, sin necesidad de demostrar campaña sistemática
-- Una detención con maltrato físico grave + amenaza de muerte = persecución de evento único
-- Mutilación genital femenina = persecución pasada que genera presunción de futura, aunque el evento ya ocurrió (Matter of Kasinga)
+13. PERSECUCIÓN POR UN SOLO EVENTO GRAVE — sigue válido:
+- Una violación o agresión sexual por agentes estatales = persecución por sí sola
+- Una detención con maltrato físico grave + amenaza de muerte + lesiones documentadas = persecución de evento único
+- Mutilación genital femenina = persecución pasada que genera presunción (Matter of Kasinga — sigue válido, K-E-S-G- explícitamente NO afecta FGM)
 
-13. PRESUNCIÓN DE PERSECUCIÓN FUTURA — crítico para el caso:
-- Una vez probada persecución PASADA, se PRESUME automáticamente que habrá persecución futura (Matter of D-I-M-)
-- Es DHS quien debe probar que las circunstancias cambiaron — no el solicitante quien debe probar que el riesgo sigue
-- La declaración debe establecer claramente la persecución pasada para activar esta presunción
-- Si el gobierno cambió de régimen o hay "acuerdo de paz" (FARC en Colombia, transición venezolana, etc.), DHS puede intentar rebatir con eso — la declaración debe anticipar mencionando que el peligro concreto persiste para el solicitante específicamente
+14. RELOCALIZACIÓN INTERNA — ENDURECIDA EN 2026:
+- ⚠️ NUEVO 2026 (Matter of F-B-A-): Tamaño grande del país + religión mayoritaria del cliente + 2+ años sin amenazas = relocalización razonable. Aplicable a Rusia, China, India, Brasil, etc.
+- ⚠️ NUEVO 2026 (Matter of V-A-B-): Habilidades laborales del solicitante (saber conducir, cocinar, agricultura) CUENTAN CONTRA argumento de "no puedo sobrevivir en otra ciudad".
+- ⚠️ NUEVO 2026 (Matter of S-E-M-Z-): Análisis de relocalización debe ser COUNTRYWIDE.
+- La declaración DEBE explicar: (a) si intentó relocalización y qué pasó, (b) cómo el persecutor tiene alcance NACIONAL (no solo de barrio/región), (c) por qué tamaño del país NO es protección suficiente para este caso específico
 
-14. COLOMBIA — estándares específicos FARC/ELN/grupos armados:
-- Amenazas telefónicas por años + asesinato de familiares + ataque a empleado = persecución acumulativa suficiente
-- Las amenazas no tienen que ser en persona para ser persecución — amenazas concretas a distancia + muerte de personas cercanas = suficiente
+15. PRESUNCIÓN DE PERSECUCIÓN FUTURA — sigue válida pero CON MÁS REBUTTAL:
+- Una vez probada persecución PASADA, se PRESUME automáticamente persecución futura (Matter of D-I-M-)
+- ⚠️ NUEVO 2026 (Matter of R-B-E-): DHS puede refutar con "fundamental change in circumstances". La declaración debe anticipar y refutar argumentos como: "Las FARC se desmovilizaron", "Castillo fue depuesto", "Aristide ya no está", "Maduro/Ortega cambiaron". Explicar por qué el peligro CONCRETO persiste para el solicitante específicamente.
+
+16. COLOMBIA — estándares específicos FARC/ELN/grupos armados:
+- ⚠️ NUEVO 2026 (Matter of O-A-R-G-): Para ex-policías, ex-militares, ex-funcionarios colombianos perseguidos por FARC/disidencias: la declaración DEBE distinguir entre (a) animus contra el GRUPO de ex-funcionarios como clase (favorable), versus (b) represalia individual por conducta pasada específica (NO califica). El caso favorable: post-Acuerdo de Paz 2016, persecución sistemática de ex-policías como CLASE por las disidencias rearmadas.
 - Después del acuerdo de paz con FARC (2016): la declaración debe mencionar que el solicitante teme a disidentes de las FARC, EMC, Segunda Marquetalia o grupos sucesores, no a la organización original
 - Si hay acuerdo de paz vigente, explicar específicamente por qué el solicitante individual sigue en peligro pese al acuerdo
 - PRINCIPIO ESTABLECIDO: resistir reclutamiento forzado por grupos armados puede constituir opinión política antiestado/anti-guerrilla cognoscible
 
-15. TRÁNSITO DISCRECIONAL — el argumento definitivo:
-- No haber pedido asilo en tránsito NO puede ser el ÚNICO factor para negar asilo discrecionalmente
-- La "Third Country Transit Rule" fue anulada — si un IJ la usó, el caso se revierte
-- El riesgo de persecución "outweighs all but the most egregious adverse factors" (Matter of Pula, Matter of Kasinga)
-- La declaración debe mencionar que el objetivo siempre fue EE.UU. y explicar brevemente por qué cada país de tránsito no ofrecía protección real, sin detenerse demasiado en ello
+17. CASOS DE PANDILLAS CENTROAMERICANAS (El Salvador, Honduras, Guatemala, México):
+- ⚠️ NUEVO 2026 (Matter of D-G-E-A-, Matter of L-A-L-T-, Matter of K-E-S-G-, Matter of S-S-F-M-): Casos contra pandillas son AHORA EXTREMADAMENTE difíciles. La declaración DEBE:
+  (a) Enfocar PSG en características INDIVIDUALES distinguibles a nivel nacional (religión específica, etnia, posición LGBTQ+ visible, familia identificable como CLASE, posición testigo)
+  (b) NO depender de "opinión política contra pandillas" — esto fue específicamente RECHAZADO
+  (c) NO depender de PSG "perceived gang member" o "former gang member" sin más
+  (d) NO depender de PSG basado solo en sexo+nacionalidad
+  (e) Si el caso es Honduras: anticipar argumento de ACA (Honduras-EE.UU.)
+  (f) Demostrar que la policía/Estado es complice CON EVIDENCIA DOCUMENTAL, no afirmaciones generales
+
+18. CASOS DE HAITÍ:
+- ⚠️ NUEVO 2026 (Matter of D-J-L-, Matter of A-A-F-V-, Matter of A-A-R-): Expertos con sesgo de advocacy contra deportaciones a Haití NO tienen peso significativo. Las anécdotas de violencia general NO bastan — necesita riesgo individualizado.
+- ⚠️ NUEVO 2026 (Matter of R-B-E-): Persecución por Lavalas en años 90s/2000s puede ser refutada con cambio fundamental (régimen ya no existe). La declaración debe conectar con persecución ACTUAL específica.
+- La violencia generalizada de Haití NO es persecución protegida — necesita motivo individualizado
+
+19. CIRCUMVENTION OF LAWFUL PATHWAYS RULE (CLP):
+- Solicitantes que entraron entre puertos de entrada SIN usar CBP One app, SIN aplicar en país de tránsito, sin excepción, pueden ser INELEGIBLES para asilo (aunque pueden buscar withholding/CAT)
+- La declaración debe abordar si aplica el bar de CLP y por qué entra una excepción (peligro inminente, problema técnico CBP One, victim of trafficking, etc.)
+
+20. CONSIDERACIONES PROCESALES 2026:
+- ⚠️ NUEVO 2026 (Matter of H-A-A-V- + EOIR PM 25-28): Jueces PUEDEN pretermitir aplicaciones sin audiencia si no establecen prima facie. La declaración debe construirse para PROBAR prima facie eligibility desde el principio.
+- ⚠️ NUEVO 2026 (Matter of S-M-H-): Frivolousness — warnings escritos en I-589 son suficientes. NO statute of limitations. Withdrawal NO previene finding. PERMANENTLY INELIGIBLE. La declaración NO PUEDE contener material fabricado.
+- ⚠️ NUEVO 2026 (Matter of C-A-R-R-): I-589 incompleto puede ser deemed abandoned. La declaración complementa pero NO sustituye el I-589 completo.
 
 CIERRE OBLIGATORIO:
 "Por todo lo que he contado con la verdad y el dolor de mi corazón, suplico humildemente que se me conceda asilo."
