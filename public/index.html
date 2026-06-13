@@ -3855,7 +3855,31 @@ REGLAS PARA USAR ESTE CONTEXTO EN PREGUNTAS:
 INSTRUCCIONES DE ANÁLISIS:
 - Lee la declaración COMPLETA antes de emitir juicio
 - structureChecks y credibilityChecks: evalúa cada ítem basándote en lo que REALMENTE está en el texto
-- missingQuestions: incluye SOLO las preguntas sobre información que genuinamente FALTA en la NARRATIVA de la declaración y que un juez de inmigración necesitaría leer. Si la declaración es completa en algún aspecto, no inventes preguntas. Si hay muchas cosas faltantes en la narrativa, incluye todas las necesarias — no hay límite artificial.
+- missingQuestions: incluye TODAS las preguntas sobre información que genuinamente FALTA en la NARRATIVA de la declaración y que un juez de inmigración necesitaría leer.
+
+  CRITERIO DE EXHAUSTIVIDAD — INSTRUCCIÓN CRÍTICA:
+  Una declaración de asilo típica tiene DECENAS de gaps narrativos potenciales. Tu trabajo es identificarlos TODOS, no solo los más evidentes.
+  - Lee la declaración párrafo por párrafo y para CADA evento, persona, fecha, lugar o conexión causal mencionada, pregúntate: "¿Falta algún detalle que el juez podría exigir?"
+  - NO hay límite máximo de preguntas. Si encuentras 30, 40 o 50 gaps narrativos legítimos, inclúyelos TODOS.
+  - NO consolides preguntas distintas en una sola. Cada gap merece su propia pregunta separada para que el abogado pueda responder por turnos.
+  - Si la declaración es muy completa, puedes incluir pocas preguntas (5-10). Si es densa y compleja, espera entre 20-50 preguntas. La cantidad debe reflejar lo que REALMENTE falta, no un techo artificial.
+  - Cubre exhaustivamente estas categorías de gaps:
+    * Nombres completos faltantes (testigos, persecutores, médicos, abogados, oficiales, vecinos, colegas)
+    * Apodos, rangos, cargos específicos de oficiales y persecutores
+    * Descripciones físicas individualizadas de agresores
+    * Fechas y horas específicas de cada evento
+    * Direcciones exactas de eventos y residencias
+    * Palabras textuales del persecutor en cada interacción
+    * Saltos cronológicos sin narrar (qué pasó entre fechas)
+    * Detalles procesales en EE.UU. (CFI, NTA, fianza, audiencias, A-Number)
+    * Estatus migratorio de cada familiar mencionado
+    * Detalles de detenciones, secuestros, tortura específica con técnicas y duración
+    * Circunstancias de liberación o escape
+    * Patrones de persecución continua a familiares que quedaron en el país
+    * Casos similares de otros perseguidos del mismo grupo (nombres, fechas)
+    * Reportes oficiales con número de expediente (denuncias, médicos, judiciales)
+    * Inconsistencias internas o aparentes que necesiten resolverse
+    * Información que el cliente proporciona pero sin contexto suficiente
 
   ENFOQUE OBLIGATORIO — SOLO PREGUNTAS DE NARRATIVA:
   Las preguntas deben enfocarse EXCLUSIVAMENTE en mejorar el texto de la declaración. La declaración es un relato escrito, no un checklist de evidencia documental. La evidencia (fotos, cartas, reportes, certificados) se adjunta por separado al I-589 — NO es parte de la declaración escrita.
@@ -3972,7 +3996,7 @@ ${_reviewText.substring(0, 60000)}`;
     // Use streaming for large declarations to avoid 504 timeout
     const raw = await callStreaming(
       'claude-opus-4-7',
-      12000,
+      24000,
       [{ role: 'user', content: reviewPrompt }],
       () => { btn.textContent = '⏳ Analizando...'; }
     );
