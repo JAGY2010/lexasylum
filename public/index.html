@@ -227,6 +227,7 @@
         <button class="tab-btn" id="tabRaw" onclick="switchTab('raw')">📄 Declaración Borrador</button>
         <button class="tab-btn" id="tabReview" onclick="switchTab('review')">🔍 Revisar</button>
         <button class="tab-btn" id="tabFinal" onclick="switchTab('final')">✨ Declaración Final</button>
+        <button class="tab-btn" id="tabI589" onclick="switchTab('i589')">📋 Respuestas I-589</button>
         <button class="tab-btn" id="tabNews" onclick="switchTab('news')">📰 Artículos</button>
       </div>
       <div class="toolbar-right" id="toolbarRight">
@@ -891,6 +892,7 @@ let _attorneyNotes = ''; // observaciones del abogado para mejora
 let _finalDeclaration = ''; // improved/final declaration text
 let _finalSource = ''; // 'cuestionario' or 'externa'
 let _finalCaseName = '';
+let _i589Answers = null; // { q1: {answer: 'Sí'|'No', explanation: '...'}, ... }
 
 // ─── COUNTRY GROUP ─────────────────────────────────────────────────────────────
 function getCountryGroup() {
@@ -3184,7 +3186,7 @@ let _analysisCachedHTML = '';
 
 function switchTab(tab) {
   currentTab = tab;
-  ['questionnaire','transcript','raw','review','final','news'].forEach(t => {
+  ['questionnaire','transcript','raw','review','final','i589','news'].forEach(t => {
     document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1))?.classList.toggle('active', t===tab);
   });
   // Toolbar visibility per tab
@@ -3213,6 +3215,7 @@ function switchTab(tab) {
   else if (tab==='transcript') renderTranscriptTab();
   else if (tab==='review') renderReview();
   else if (tab==='final') renderFinal();
+  else if (tab==='i589') renderI589();
   else if (tab==='news') {
     if (generatedData && generatedData.newsItems) renderNews(generatedData);
     else document.getElementById('contentBody').innerHTML = `<div class="empty-state"><div class="empty-icon">📰</div><h3>Sin artículos aún</h3><p>Los artículos se generan automáticamente cuando se mejora la declaración en la pestaña "Revisar".</p></div>`;
@@ -3235,6 +3238,209 @@ function renderFinal() {
   }
   body.innerHTML = `<div class="raw-text">${escHtml(_finalDeclaration)}</div>`;
 }
+
+// ─── I-589 RESPUESTAS ─────────────────────────────────────────────────────────
+const I589_QUESTIONS = [
+  {
+    id: 'q1',
+    title: '¿Usted, su familia, amigos cercanos o colegas han sufrido algún daño, maltrato o amenazas por parte de alguien?',
+    instructions: 'Si la respuesta es "Sí", explique detalladamente: 1) Qué sucedió; 2) Cuándo se produjeron daños, maltratos o amenazas; 3) ¿Quién causó los daños, maltratos o amenazas?; y 4) ¿Por qué cree que se produjeron los daños, maltratos o amenazas?'
+  },
+  {
+    id: 'q2',
+    title: '¿Teme sufrir daños o maltratos si regresa a su país de origen?',
+    instructions: 'Si la respuesta es "Sí", explique detalladamente: 1) ¿Qué tipo de daños o maltratos teme? 2) ¿Quién cree que podría dañarle o maltratarle? 3) ¿Por qué cree que podría sufrir daños o maltratos?'
+  },
+  {
+    id: 'q3',
+    title: '¿Usted o algún miembro de su familia han sido acusados, imputados, arrestados, detenidos, interrogados, condenados o encarcelados en algún país que no sea Estados Unidos (incluso por una infracción de las leyes de inmigración)?',
+    instructions: 'Si la respuesta es "Sí", explique las circunstancias y los motivos.'
+  },
+  {
+    id: 'q4',
+    title: '¿Usted o algún miembro de su familia han pertenecido o estado asociados alguna vez a alguna organización o grupo en su país de origen (partido político, grupo estudiantil, sindicato, organización religiosa, grupo militar o paramilitar, patrulla civil, organización guerrillera, grupo étnico, grupo de derechos humanos o medios de comunicación)?',
+    instructions: 'Si la respuesta es "Sí", describa para cada persona el nivel de participación, los cargos de liderazgo u otros puestos que haya ocupado y el tiempo que usted o algún miembro de su familia hayan estado involucrados en cada organización o actividad.'
+  },
+  {
+    id: 'q5',
+    title: '¿Usted o algún miembro de su familia siguen participando de alguna manera en estas organizaciones o grupos?',
+    instructions: 'Si la respuesta es "Sí", describa para cada persona su nivel actual de participación, los cargos de liderazgo u otros puestos que ocupen actualmente, y el tiempo que usted o algún miembro de su familia llevan involucrados en cada organización o grupo.'
+  },
+  {
+    id: 'q6',
+    title: '¿Teme ser sometido a tortura en su país de origen o en cualquier otro país al que pueda ser devuelto?',
+    instructions: 'Si responde "Sí", explique por qué teme y describa la naturaleza de la tortura que teme, quién la infligiría y por qué.'
+  },
+  {
+    id: 'q7',
+    title: '¿Usted, su cónyuge, sus hijos, sus padres o sus hermanos han solicitado alguna vez al Gobierno de los Estados Unidos el estatus de refugiado, asilo o la suspensión de la deportación?',
+    instructions: 'Si la respuesta es "Sí", explique la decisión y qué sucedió con el estatus. Indique si usted fue incluido en la solicitud de su padre o cónyuge (incluya el número A). Si un juez de inmigración o la BIA le ha negado el asilo, describa cualquier cambio en las condiciones de su país o en sus circunstancias personales desde la negación.'
+  },
+  {
+    id: 'q8',
+    title: 'Después de salir del país desde el que solicita asilo, ¿usted, su cónyuge o sus hijos viajaron o residieron en algún otro país antes de entrar a Estados Unidos? ¿Usted, su cónyuge, sus hijos u otros familiares han solicitado o recibido algún estatus legal en algún país distinto al del que solicita asilo?',
+    instructions: 'Si la respuesta a una o ambas preguntas es "Sí", proporcione para cada persona: el nombre de cada país y la duración de la estancia, su estatus durante su estancia, los motivos de su salida, si tiene derecho a regresar para obtener residencia legal y si solicitó asilo o estatus de refugiado durante su estancia. En caso negativo, explique por qué no lo hizo.'
+  },
+  {
+    id: 'q9',
+    title: '¿Usted, su cónyuge o sus hijos han ordenado, incitado, ayudado o participado alguna vez en causar daño o sufrimiento a alguna persona debido a su raza, religión, nacionalidad, pertenencia a un grupo social determinado o creencia en una opinión política específica?',
+    instructions: 'Si la respuesta es "Sí", describa detalladamente cada incidente y la participación suya, de su cónyuge o de sus hijos.'
+  },
+  {
+    id: 'q10',
+    title: 'Después de abandonar el país donde sufrió daños o temió sufrirlos, ¿regresó a ese país?',
+    instructions: 'Si la respuesta es "Sí", describa detalladamente las circunstancias de su(s) visita(s) (fecha(s), propósito(s) del/de los viaje(s) y duración de su estancia).'
+  },
+  {
+    id: 'q11',
+    title: '¿Presenta esta solicitud más de un año después de su última llegada a Estados Unidos?',
+    instructions: 'Si la respuesta es "Sí", explique por qué no presentó la solicitud durante el primer año posterior a su llegada. Debe estar preparado para explicar en su entrevista o audiencia por qué no presentó su solicitud de asilo durante el primer año posterior a su llegada.'
+  },
+  {
+    id: 'q12',
+    title: '¿Usted o algún miembro de su familia incluido en la solicitud ha cometido algún delito o ha sido arrestado, acusado, condenado o sentenciado por algún delito en los Estados Unidos (incluidas las infracciones a las leyes de inmigración)?',
+    instructions: 'Si respondió "Sí" a cada caso, especifique: qué ocurrió y las circunstancias, las fechas, la duración de la sentencia, el lugar, la duración de la detención o encarcelamiento, los motivos de la detención o condena, cualquier cargo formal presentado y los motivos de la liberación. Adjunte los documentos relacionados con estos incidentes, si están disponibles, o una explicación de por qué no los tiene.'
+  }
+];
+
+function renderI589() {
+  const body = document.getElementById('contentBody');
+  if (!_finalDeclaration) {
+    body.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">📋</div>
+      <h3>Sin Respuestas I-589 aún</h3>
+      <p>Las respuestas oficiales del Formulario I-589 se generan automáticamente cuando se completa la Declaración Final en la pestaña "Revisar".</p>
+    </div>`;
+    return;
+  }
+
+  if (!_i589Answers) {
+    body.innerHTML = `<div style="padding:24px;max-width:920px;margin:0 auto">
+      <div style="background:linear-gradient(135deg,var(--cream),#fff);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:20px">
+        <h2 style="margin:0 0 10px 0;color:var(--navy);font-family:'Cormorant Garamond',serif;font-size:26px">📋 Respuestas I-589</h2>
+        <p style="margin:0;color:var(--muted);font-size:14px;line-height:1.6">Las respuestas oficiales para las preguntas críticas del Formulario I-589 (Application for Asylum) se generan automáticamente con base en la declaración final del cliente. Cada respuesta incluye un Sí/No determinado por análisis del contenido y una explicación detallada cuando aplica.</p>
+      </div>
+      <button onclick="generateI589Answers()" style="background:linear-gradient(135deg,var(--gold),var(--gold-light));color:var(--navy);border:none;border-radius:10px;padding:14px 28px;font-family:'Source Sans 3',sans-serif;font-size:14px;font-weight:700;cursor:pointer;display:block;margin:0 auto">📋 Generar Respuestas I-589</button>
+    </div>`;
+    return;
+  }
+
+  // Show results
+  const cards = I589_QUESTIONS.map((q, idx) => {
+    const ans = _i589Answers[q.id] || { answer: 'No', explanation: '' };
+    const isYes = ans.answer === 'Sí' || ans.answer === 'Si';
+    const badgeColor = isYes ? '#dc2626' : '#52b788';
+    const badgeBg = isYes ? '#fef2f2' : '#d8f3dc';
+    const badgeBorder = isYes ? '#fca5a5' : '#52b788';
+    return `<div style="background:white;border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,0.04)">
+      <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:12px">
+        <div style="background:var(--navy);color:white;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0">${idx+1}</div>
+        <div style="flex:1">
+          <p style="margin:0 0 10px 0;color:var(--navy);font-weight:600;font-size:14px;line-height:1.5">${escHtml(q.title)}</p>
+          <div style="display:inline-block;background:${badgeBg};border:1px solid ${badgeBorder};border-radius:20px;padding:5px 14px;font-size:13px;font-weight:700;color:${badgeColor}">
+            ${isYes ? '✓ SÍ' : '✗ NO'}
+          </div>
+        </div>
+      </div>
+      ${ans.explanation ? `<div style="background:var(--cream);border-left:3px solid var(--gold);border-radius:6px;padding:14px 16px;margin-top:12px;font-size:13px;color:#333;line-height:1.65;white-space:pre-wrap">${escHtml(ans.explanation)}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  body.innerHTML = `<div style="padding:24px;max-width:920px;margin:0 auto">
+    <div style="background:linear-gradient(135deg,var(--cream),#fff);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap">
+      <div>
+        <h2 style="margin:0 0 6px 0;color:var(--navy);font-family:'Cormorant Garamond',serif;font-size:24px">📋 Respuestas I-589</h2>
+        <p style="margin:0;color:var(--muted);font-size:13px">Respuestas oficiales generadas con base en la Declaración Final del cliente.</p>
+      </div>
+      <button onclick="generateI589Answers()" style="background:var(--navy);color:white;border:none;border-radius:8px;padding:10px 18px;font-family:'Source Sans 3',sans-serif;font-size:13px;font-weight:600;cursor:pointer">🔄 Regenerar</button>
+    </div>
+    ${cards}
+  </div>`;
+}
+
+async function generateI589Answers() {
+  if (!_finalDeclaration) {
+    alert('No hay declaración final. Mejore primero la declaración en la pestaña "Revisar".');
+    return;
+  }
+  const body = document.getElementById('contentBody');
+  body.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Generando respuestas oficiales del Formulario I-589...</p></div>`;
+
+  const questionsForPrompt = I589_QUESTIONS.map((q, idx) =>
+    `PREGUNTA ${idx+1} (id: "${q.id}"):\n${q.title}\nInstrucciones si aplica: ${q.instructions}`
+  ).join('\n\n');
+
+  const prompt = `Eres un paralegal experto en asilo I-589 (Application for Asylum and Withholding of Removal de USCIS). Analiza la DECLARACIÓN FINAL del cliente y responde las 12 preguntas oficiales del Formulario I-589 con base ÚNICAMENTE en la información de esa declaración.
+
+REGLAS CRÍTICAS:
+1. Determina Sí/No basándote en la EVIDENCIA dentro de la declaración. Si la declaración no menciona algo, marca "No".
+2. Para cada respuesta "Sí": redacta una explicación detallada (MÁXIMO 500 PALABRAS) en primera persona del cliente, profesional, factual, citando hechos, fechas, nombres y lugares específicos extraídos de la declaración. NO inventes datos.
+3. Para respuestas "No": deja explanation como string vacío "".
+4. La pregunta 11 (presentación >1 año después de llegada): calcula con base en fechas de entrada a EE.UU. y de presentación. Si no hay fecha de presentación en la declaración, asume que se está presentando ahora y compara con fecha de entrada.
+5. Sé especialmente preciso en la pregunta 9 (persecución cometida por el cliente): casi siempre será "No" salvo evidencia inequívoca contraria; cualquier servicio policial/militar legítimo NO cuenta como persecución bajo esta pregunta.
+6. Sé especialmente preciso en pregunta 11 sobre el plazo del año: si la persona entró a EE.UU. hace menos de un año, responder NO. Si lleva más de un año, responder SÍ y explicar las excepciones aplicables (changed circumstances, extraordinary circumstances).
+
+DEVUELVE ÚNICAMENTE un objeto JSON válido (sin texto adicional, sin markdown, sin backticks) con esta estructura exacta:
+
+{
+  "q1": {"answer": "Sí"|"No", "explanation": "..."},
+  "q2": {"answer": "Sí"|"No", "explanation": "..."},
+  "q3": {"answer": "Sí"|"No", "explanation": "..."},
+  "q4": {"answer": "Sí"|"No", "explanation": "..."},
+  "q5": {"answer": "Sí"|"No", "explanation": "..."},
+  "q6": {"answer": "Sí"|"No", "explanation": "..."},
+  "q7": {"answer": "Sí"|"No", "explanation": "..."},
+  "q8": {"answer": "Sí"|"No", "explanation": "..."},
+  "q9": {"answer": "Sí"|"No", "explanation": "..."},
+  "q10": {"answer": "Sí"|"No", "explanation": "..."},
+  "q11": {"answer": "Sí"|"No", "explanation": "..."},
+  "q12": {"answer": "Sí"|"No", "explanation": "..."}
+}
+
+PREGUNTAS OFICIALES I-589:
+
+${questionsForPrompt}
+
+DECLARACIÓN FINAL DEL CLIENTE:
+
+${_finalDeclaration}
+
+Responde ÚNICAMENTE con el JSON. Sin texto adicional.`;
+
+  try {
+    const resp = await fetch('/api/claude', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json', 'x-session-token': _authToken||''},
+      body: JSON.stringify({
+        model: 'claude-opus-4-7',
+        max_tokens: 12000,
+        messages: [{role:'user', content: prompt}]
+      })
+    });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error.message);
+
+    const raw = data.content.map(i => i.type==='text' ? i.text : '').join('').trim();
+    // Clean markdown if present
+    const clean = raw.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/```$/,'').trim();
+    const parsed = parseJSON(clean);
+
+    _i589Answers = parsed;
+    saveCurrentCase(true);
+    renderI589();
+
+    // Billing event
+    if (typeof recordBillingEvent === 'function') {
+      recordBillingEvent('i589', currentCaseId, document.getElementById('caseName')?.value || 'Sin nombre');
+    }
+  } catch(err) {
+    body.innerHTML = `<div style="padding:24px;max-width:920px;margin:0 auto">
+      <div class="alert error">⚠ Error al generar respuestas I-589: ${escHtml(err.message)}</div>
+      <button onclick="renderI589()" style="background:var(--navy);color:white;border:none;border-radius:8px;padding:10px 18px;font-family:'Source Sans 3',sans-serif;font-size:13px;font-weight:600;cursor:pointer;margin-top:12px">← Volver</button>
+    </div>`;
+  }
+}
+
 
 // ─── CASES ─────────────────────────────────────────────────────────────────────
 function getCases() { try { return JSON.parse(localStorage.getItem(CASES_KEY)||'[]'); } catch { return []; } }
@@ -3272,6 +3478,8 @@ function saveCurrentCase(silent = false) {
     finalDeclaration: _finalDeclaration || '',
     finalSource: _finalSource || '',
     finalCaseName: _finalCaseName || '',
+    // I-589 official answers
+    i589Answers: _i589Answers || null,
     savedAt: new Date().toISOString()
   };
   const cases = getCases();
@@ -3311,6 +3519,8 @@ function loadCaseData(c) {
   _finalDeclaration = c.finalDeclaration || '';
   _finalSource = c.finalSource || '';
   _finalCaseName = c.finalCaseName || '';
+  // Restore I-589 official answers
+  _i589Answers = c.i589Answers || null;
   closeCases();
   switchTab('questionnaire');
   updateGenerateButton();
@@ -3324,6 +3534,7 @@ function newCase() {
   _reviewText = ''; _reviewCaseName = ''; _reviewAnalysis = null;
   _reviewAnswers = {}; _reviewResultsHTML = ''; _attorneyNotes = '';
   _finalDeclaration = ''; _finalSource = ''; _finalCaseName = '';
+  _i589Answers = null;
   _reviewBillingRecorded = false;
   document.getElementById('caseName').value = '';
   document.getElementById('country').value = 'cuba';
@@ -4367,6 +4578,9 @@ Continúa ahora:`;
 
     // Now generate articles based on the FINAL declaration
     generateArticlesForFinal();
+    // Also generate I-589 official answers based on the FINAL declaration
+    _i589Answers = null;
+    generateI589AnswersBackground();
 
   } catch(err) {
     improveResult.innerHTML = `<div class="alert error">⚠ Error: ${escHtml(err.message)}</div>`;
@@ -4376,7 +4590,82 @@ Continúa ahora:`;
   }
 }
 
-// Generate articles based on Final Declaration (replaces previous flow)
+async function generateI589AnswersBackground() {
+  // Background version: generates I-589 answers without changing the UI.
+  // If the user is on the I-589 tab, refreshes it when done.
+  if (!_finalDeclaration) return;
+
+  const questionsForPrompt = I589_QUESTIONS.map((q, idx) =>
+    `PREGUNTA ${idx+1} (id: "${q.id}"):\n${q.title}\nInstrucciones si aplica: ${q.instructions}`
+  ).join('\n\n');
+
+  const prompt = `Eres un paralegal experto en asilo I-589 (Application for Asylum and Withholding of Removal de USCIS). Analiza la DECLARACIÓN FINAL del cliente y responde las 12 preguntas oficiales del Formulario I-589 con base ÚNICAMENTE en la información de esa declaración.
+
+REGLAS CRÍTICAS:
+1. Determina Sí/No basándote en la EVIDENCIA dentro de la declaración. Si la declaración no menciona algo, marca "No".
+2. Para cada respuesta "Sí": redacta una explicación detallada (MÁXIMO 500 PALABRAS) en primera persona del cliente, profesional, factual, citando hechos, fechas, nombres y lugares específicos extraídos de la declaración. NO inventes datos.
+3. Para respuestas "No": deja explanation como string vacío "".
+4. La pregunta 11 (presentación >1 año después de llegada): calcula con base en fechas de entrada a EE.UU. y de presentación. Si no hay fecha de presentación en la declaración, asume que se está presentando ahora y compara con fecha de entrada.
+5. Sé especialmente preciso en la pregunta 9 (persecución cometida por el cliente): casi siempre será "No" salvo evidencia inequívoca contraria; cualquier servicio policial/militar legítimo NO cuenta como persecución bajo esta pregunta.
+6. Sé especialmente preciso en pregunta 11 sobre el plazo del año: si la persona entró a EE.UU. hace menos de un año, responder NO. Si lleva más de un año, responder SÍ y explicar las excepciones aplicables (changed circumstances, extraordinary circumstances).
+
+DEVUELVE ÚNICAMENTE un objeto JSON válido (sin texto adicional, sin markdown, sin backticks) con esta estructura exacta:
+
+{
+  "q1": {"answer": "Sí"|"No", "explanation": "..."},
+  "q2": {"answer": "Sí"|"No", "explanation": "..."},
+  "q3": {"answer": "Sí"|"No", "explanation": "..."},
+  "q4": {"answer": "Sí"|"No", "explanation": "..."},
+  "q5": {"answer": "Sí"|"No", "explanation": "..."},
+  "q6": {"answer": "Sí"|"No", "explanation": "..."},
+  "q7": {"answer": "Sí"|"No", "explanation": "..."},
+  "q8": {"answer": "Sí"|"No", "explanation": "..."},
+  "q9": {"answer": "Sí"|"No", "explanation": "..."},
+  "q10": {"answer": "Sí"|"No", "explanation": "..."},
+  "q11": {"answer": "Sí"|"No", "explanation": "..."},
+  "q12": {"answer": "Sí"|"No", "explanation": "..."}
+}
+
+PREGUNTAS OFICIALES I-589:
+
+${questionsForPrompt}
+
+DECLARACIÓN FINAL DEL CLIENTE:
+
+${_finalDeclaration}
+
+Responde ÚNICAMENTE con el JSON. Sin texto adicional.`;
+
+  try {
+    const resp = await fetch('/api/claude', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json', 'x-session-token': _authToken||''},
+      body: JSON.stringify({
+        model: 'claude-opus-4-7',
+        max_tokens: 12000,
+        messages: [{role:'user', content: prompt}]
+      })
+    });
+    const data = await resp.json();
+    if (data.error) {
+      console.warn('I-589 background generation error:', data.error.message);
+      return;
+    }
+    const raw = data.content.map(i => i.type==='text' ? i.text : '').join('').trim();
+    const clean = raw.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/```$/,'').trim();
+    const parsed = parseJSON(clean);
+    _i589Answers = parsed;
+    saveCurrentCase(true);
+    if (typeof recordBillingEvent === 'function') {
+      recordBillingEvent('i589', currentCaseId, document.getElementById('caseName')?.value || 'Sin nombre');
+    }
+    // If user is currently on i589 tab, refresh it
+    if (currentTab === 'i589') renderI589();
+  } catch(err) {
+    console.warn('I-589 background generation failed:', err.message);
+  }
+}
+
 async function generateArticlesForFinal() {
   if (!_finalDeclaration) return;
   const statusEl = document.getElementById('articleStatus');
