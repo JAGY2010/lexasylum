@@ -1781,7 +1781,7 @@ function renderEventBlock(q) {
  { key:'capacidad',label:'⚠️ Capacidad inmediata del persecutor', rows:2, placeholder:'¿El persecutor tenía la CAPACIDAD INMEDIATA de cumplir la amenaza? Tenía arma visible, contactos para localizarlo, autoridad para actuar.' },
  { key:'nexo', label:'🔗 ¿Por qué fue por usted?', rows:2, placeholder:'¿Cómo sabe que fue por su opinión política / religión / familia / grupo social? ¿Qué lo confirma? ¿Por qué LO ELIGIERON A USTED y no a otra persona?' },
  { key:'testigos', label:'👥 Testigos en el lugar', rows:1, placeholder:'Nombres y relación con el cliente, o "nadie presente"' },
- { key:'usTestigos',label:'🇺🇸 Testigos AHORA en EE.UU.', rows:2, placeholder:'¿Hay personas EN EE.UU. que SEPAN de este evento? (Familiares, amigos, ex-vecinos que ahora viven en EE.UU.).UU. cuando los tiene disponibles.' },
+ { key:'usTestigos',label:'🗽 Testigos AHORA en EE.UU.', rows:2, placeholder:'¿Hay personas EN EE.UU. que SEPAN de este evento? (Familiares, amigos, ex-vecinos que ahora viven en EE.UU.). Si NO los menciona y existen, el juez puede asumir que oculta información.' },
  { key:'medico', label:'🩺 Atención médica', rows:2, placeholder:'¿Buscó atención médica? Si NO: ¿por qué no? (Miedo, sin acceso, sin dinero, herida menor). Si SÍ: nombre del médico/hospital, fecha, diagnóstico. La FALTA de atención médica puede usarse en contra del cliente para minimizar gravedad.' },
  { key:'documentos',label:'📄 Documentos del evento', rows:2, placeholder:'¿Hay DOCUMENTOS que corroboren este evento? Reportes policiales, certificados médicos, fotos de heridas con fecha, recortes de prensa, expedientes judiciales. Si NO tiene: ¿por qué no y puede obtenerlos?' },
  { key:'consecuencias', label:'💔 Consecuencias', rows:2, placeholder:'Físicas (heridas, hospitalización), emocionales (trauma, insomnio), laborales (perdió empleo), familiares...' },
@@ -4333,6 +4333,16 @@ Continúa ahora:`;
     _finalDeclaration = improved;
     _finalCaseName = _reviewCaseName || document.getElementById('caseName')?.value || 'Caso';
     saveCurrentCase(true);
+
+    // Clear or update the top banner based on final pendingCount
+    const bannerSlot = document.getElementById('missingBannerSlot');
+    if (bannerSlot) {
+      if (pendingCount > 0) {
+        showMissingBanner(pendingCount);
+      } else {
+        bannerSlot.innerHTML = '';
+      }
+    }
 
     improveResult.innerHTML = `
       <div class="review-score-card" style="border-color:#52b788">
