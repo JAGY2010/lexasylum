@@ -1130,6 +1130,11 @@ function getSections() {
 
 // ─── FOLLOW-UP QUESTIONS MAP — Por país ──────────────────────────────────────
 function getFollowupQuestions(qId) {
+ const ground = document.getElementById('groundType')?.value || '';
+ // El motivo LGBTQ+ tiene prioridad sobre el país (cruza todos los países)
+ if (ground === 'lgbtq' && FOLLOWUP_BY_GROUP['lgbtq'][qId] !== undefined) {
+   return FOLLOWUP_BY_GROUP['lgbtq'][qId] || FOLLOWUP_BY_GROUP['other'][qId] || null;
+ }
  const group = getCountryGroup();
  const map = FOLLOWUP_BY_GROUP[group] || FOLLOWUP_BY_GROUP['other'];
  return map[qId] || FOLLOWUP_BY_GROUP['other'][qId] || null;
@@ -1550,6 +1555,22 @@ other: {
  nexo: ['¿Le dijeron por qué lo elegían a usted?','¿Algo lo distinguía de otros presentes?'],
  testigos: ['¿Había personas presentes?','¿Le contó a alguien inmediatamente?'],
  consecuencias:['¿Cambió su rutina?','¿Afectó su trabajo o familia?','¿Problemas de salud emocional?'],
+},
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LGBTQ+ (orientación sexual / identidad de género) — por MOTIVO, cruza países
+// Solo define los qId ESPECÍFICOS del módulo LGBTQ+. Los qId compartidos
+// (datos personales, familia, eventos, S9-S14) caen por fallback a 'other'.
+// ═══════════════════════════════════════════════════════════════════════════
+lgbtq: {
+ sogiIdentity: ['¿Cómo se identifica usted específicamente (lesbiana, gay, bisexual, transgénero, no binario, intersex)?','¿A qué edad tuvo conciencia de su orientación o identidad?','¿Durante cuánto tiempo tuvo que ocultarlo y por qué?','¿Hubo un momento concreto en que decidió o se vio forzado a revelarlo?','¿Cómo reaccionó su entorno cuando lo supo?'],
+ sogiVisibility: ['¿Quiénes sabían de su orientación o identidad (familia, vecinos, comunidad, trabajo)?','¿Cómo se enteraron — usted lo reveló, los vieron con su pareja, fue un "outing" forzado?','¿Tenía una relación o pareja conocida públicamente?','¿Su expresión de género lo hace visible o identificable?','¿Participó en eventos, activismo o redes sociales LGBTQ+?','¿Hubo fotos, mensajes o publicaciones que lo expusieron?'],
+ persecutors: ['¿Quiénes lo persiguieron — policía, familia, comunidad, grupos armados, iglesia?','¿Nombres, cargos o relación con usted si los conoce?','¿Fue una sola fuente o varias al mismo tiempo?','¿Descripción física o cómo los identificó?','¿Qué palabras o insultos textuales usaron contra usted?'],
+ stateInvolvement: ['¿Acudió a la policía o autoridades a pedir ayuda? ¿Qué pasó?','¿La policía se burló, lo ignoró, o lo maltrató a usted?','¿Fue detenido arbitrariamente o abusado bajo custodia?','¿Existen leyes o prácticas discriminatorias en su país?','¿Por qué cree que el Estado no lo protegió pese a las leyes que puedan existir?','¿Conoce otros casos de personas LGBTQ+ desprotegidas por la policía?'],
+ societalPersecution: ['¿Qué tipo de violencia o rechazo sufrió de su familia?','¿Lo sometieron o intentaron someter a "terapias de conversión"?','¿Lo expulsaron de su casa? ¿A qué edad?','¿Perdió empleo, estudios o vivienda por su orientación/identidad?','¿La comunidad o vecinos lo amenazaron o agredieron?','¿Recibió amenazas de muerte? ¿De quién y con qué palabras?'],
+ internalRelocation: ['¿Intentó mudarse a otra ciudad dentro del país? ¿Qué pasó?','¿Por qué una ciudad grande o "más tolerante" no era una opción segura?','¿Su familia o persecutores tenían forma de localizarlo en otra región?','¿La discriminación o el peligro existe en todo el país, no solo en su zona?','¿Pudo vivir abiertamente en algún lugar de su país?'],
+ concealment: ['¿Tendría que esconder su orientación/identidad para sobrevivir si regresa?','¿Ya vivió ocultándose antes? ¿Cómo fue y qué pasó cuando se descubrió?','¿Qué le impediría vivir abiertamente y con seguridad?'],
+ firstEvent: ['¿Cuántos años tenía cuando notó por primera vez el rechazo o peligro?','¿Fue en la escuela, la casa, el barrio, el trabajo o la iglesia?','¿Quién estuvo involucrado? ¿Familiar, compañero, autoridad, vecino?','¿Qué pasó exactamente ese día? Descríbalo paso a paso.','¿Qué le dijeron textualmente?','¿Hubo testigos? ¿Quiénes?','¿Ese evento lo obligó a ocultar quién era?','¿Cómo cambió su vida después de ese momento?'],
 },
 
 }; // end FOLLOWUP_BY_GROUP
