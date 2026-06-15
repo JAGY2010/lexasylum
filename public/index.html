@@ -188,11 +188,12 @@
       </div>
       <div class="field">
         <label>Motivo de persecución</label>
-        <select id="groundType" onchange="autoSave()">
+        <select id="groundType" onchange="autoSave(); if(typeof renderQuestionnaire==='function') renderQuestionnaire();">
           <option value="political">Opinión política</option>
           <option value="religion">Religión</option>
           <option value="race">Raza / Etnia</option>
           <option value="social">Grupo social particular</option>
+          <option value="lgbtq">Grupo social – Orientación sexual / identidad de género (LGBTQ+)</option>
           <option value="nationality">Nacionalidad</option>
         </select>
       </div>
@@ -1077,6 +1078,41 @@ function getAdaptiveSections() {
 
  const s6 = group==='regime' ? s6_regime : group==='gangs' ? s6_gangs : group==='colombia' ? s6_colombia : group==='haiti' ? s6_haiti : s6_other;
  const s7 = group==='regime' ? s7_regime : group==='gangs' ? s7_gangs : group==='colombia' ? s7_colombia : group==='haiti' ? s7_haiti : s7_other;
+
+ // ── LGBTQ+ (orientación sexual / identidad de género) — POR MOTIVO, cruza todos los países ──
+ const s6_lgbtq = {
+ id:'s6', title:'Persecución por orientación sexual / identidad de género', color:'#F1EFE8', numColor:'#2C2C2A',
+ questions:[
+ { id:'sogiIdentity', q:'¿Cómo se identifica usted? (lesbiana, gay, bisexual, transgénero, no binario, intersex, etc.) ¿Desde cuándo tuvo conciencia de su orientación o identidad?', critical:true,
+ placeholder:'Ej: Soy lesbiana. Tuve conciencia desde los 14 años pero lo oculté por miedo. Salí del clóset con mi familia a los 22, lo cual desencadenó el rechazo y la violencia.' },
+ { id:'sogiVisibility', q:'¿Su orientación o identidad es conocida o visible en su país? ¿Cómo se hizo conocida? (relación pública, denuncia, "outing" forzado, expresión de género, activismo, redes sociales).', critical:true,
+ placeholder:'Ej: Vivía con mi pareja abiertamente en Medellín. Vecinos y familia lo sabían. O: Me "sacaron del clóset" cuando publicaron fotos mías con mi pareja. O: Mi expresión de género masculina me hace visible como mujer trans.' },
+ { id:'persecutors', q:'¿Quiénes lo persiguieron por su orientación/identidad? Pueden ser MÚLTIPLES: agentes estatales (policía), sociedad/comunidad, familia, grupos armados, iglesias. Nombres y cargos si los conoce.', critical:true,
+ placeholder:'Ej: Policía de Bogotá que me detuvo arbitrariamente y me golpeó por ser visiblemente lesbiana. Mi padre y mis hermanos que me amenazaron de muerte. Miembros de las disidencias FARC que en mi pueblo "limpian socialmente" a personas LGBTQ+.' },
+ { id:'stateInvolvement', q:'¿El ESTADO participó en la persecución o toleró/ignoró la violencia? (Policía que se negó a ayudar, detenciones arbitrarias, abuso bajo custodia, leyes discriminatorias, impunidad). Describa.', critical:true,
+ placeholder:'Ej: Fui a la policía a denunciar la golpiza y se burlaron, dijeron "eso le pasa por marimacha". O: La policía misma me detuvo y abusó. O: Aunque hay leyes en Colombia, en la práctica la policía no protege a personas LGBTQ+ en mi región.' },
+ { id:'societalPersecution', q:'¿Qué violencia o discriminación sufrió por parte de la sociedad, comunidad o familia? (violencia física, "terapias de conversión", rechazo familiar, expulsión del hogar, pérdida de empleo, amenazas comunitarias).', critical:true,
+ placeholder:'Ej: Mi familia me encerró e intentó "curarme" con un pastor. Me echaron de casa a los 18. En el trabajo me despidieron al saber que soy lesbiana. La comunidad me señalaba y amenazaba.' },
+ { id:'internalRelocation', q:'¿Por qué no pudo simplemente mudarse a una ciudad más tolerante dentro de su país (ej. una capital grande)? La fiscalía/juez preguntará esto. ¿Por qué la reubicación interna no era segura ni razonable?', critical:true,
+ placeholder:'Ej: Intenté mudarme a Bogotá pero el rechazo social y la discriminación laboral persisten en todo el país. Mi familia tiene contactos que me localizaron. Las disidencias operan en varias regiones. No hay zona realmente segura para una persona LGBTQ+ visible.' },
+ { id:'concealment', q:'¿Tendría que ocultar su orientación/identidad para estar a salvo si regresa? (La ley de asilo NO exige que una persona oculte quién es para evitar persecución).', critical:false,
+ placeholder:'Ej: Para sobrevivir tendría que fingir ser heterosexual, esconder a mi pareja, no poder ser yo misma. Ya viví así durante años y fue insostenible y peligroso cuando se descubrió.' },
+ ]
+ };
+
+ const s7_lgbtq = {
+ id:'s7', title:'Primera señal de persecución', color:'#E1F5EE', numColor:'#04342C',
+ questions:[
+ { id:'firstEvent', q:'¿Cuándo notó por primera vez el rechazo, peligro o violencia por su orientación o identidad? Puede ser desde la infancia/adolescencia (bullying, rechazo familiar) o el momento en que se hizo visible. Fecha aproximada, lugar y qué pasó.', critical:true,
+ placeholder:'Primera señal — bullying escolar por expresión de género, golpiza al ser descubierto, momento del "outing", primera amenaza familiar, primera agresión en la calle, expulsión del hogar...' },
+ ]
+ };
+
+ // El MOTIVO LGBTQ+ tiene prioridad sobre el país (cruza todos los países)
+ const ground = document.getElementById('groundType')?.value || '';
+ if (ground === 'lgbtq') {
+   return { s6: s6_lgbtq, s7: s7_lgbtq, s8 };
+ }
 
  return { s6, s7, s8 };
 }
@@ -2252,7 +2288,7 @@ async function generateDeclaration() {
  setLoadingMsg('Procesando respuestas del cuestionario...', 0);
 
  const country = getCountryName();
- const groundLabels = { political:'opinión política', religion:'religión', race:'raza o etnia', social:'pertenencia a grupo social particular', nationality:'nacionalidad' };
+ const groundLabels = { political:'opinión política', religion:'religión', race:'raza o etnia', social:'pertenencia a grupo social particular', lgbtq:'pertenencia a grupo social particular por orientación sexual / identidad de género (LGBTQ+)', nationality:'nacionalidad' };
  const groundType = document.getElementById('groundType').value;
  const a = answers;
  const get = id => (a[id]?.value || '').trim();
@@ -2844,6 +2880,16 @@ La jurisprudencia BIA 2025-2026 ha endurecido significativamente los estándares
 - ⚠️ NUEVO 2026 (Matter of S-M-H-): Frivolousness — warnings escritos en I-589 son suficientes. NO statute of limitations. Withdrawal NO previene finding. PERMANENTLY INELIGIBLE. La declaración NO PUEDE contener material fabricado.
 - ⚠️ NUEVO 2026 (Matter of C-A-R-R-): I-589 incompleto puede ser deemed abandoned. La declaración complementa pero NO sustituye el I-589 completo.
 
+21. CASOS LGBTQ+ (orientación sexual / identidad de género) — APLICA A CUALQUIER PAÍS:
+- FUNDAMENTO: La orientación sexual y la identidad de género son base reconocida de "grupo social particular" (Matter of Toboso-Alfonso — funda el PSG por orientación sexual; Matter of A-R-C-G- y línea de género para mujeres y personas trans). El PSG es la característica inmutable o fundamental para la identidad.
+- DEFINIR EL PSG CON PRECISIÓN: no basta "personas LGBTQ+". Articular el grupo concreto y socialmente distinguible en ESE país: ej. "mujeres lesbianas colombianas cuya orientación es pública/conocida", "mujeres transgénero hondureñas", etc. Demostrar inmutabilidad, particularidad y DISTINCIÓN SOCIAL (que la sociedad las percibe y trata como grupo aparte).
+- NEXO: la persecución debe ser POR la orientación/identidad (o la percibida). Citar palabras textuales de los persecutores con epítetos como prueba de nexo.
+- PERSECUTOR PUEDE SER PRIVADO: si la familia, comunidad o grupos armados son los persecutores, DEBE demostrarse que el Estado NO PUEDE o NO QUIERE proteger (policía que se burla, no investiga, o es cómplice/perpetrador directo). La existencia de leyes pro-LGBTQ+ en papel (como en Colombia) NO basta si en la práctica hay impunidad — documentar la brecha entre la ley y la realidad.
+- REUBICACIÓN INTERNA: anticipar el argumento de "podía mudarse a una ciudad grande/tolerante". Explicar por qué NO es razonable ni segura (discriminación nacional, alcance del persecutor, imposibilidad de vivir abiertamente).
+- NO SE EXIGE OCULTAMIENTO: es principio establecido que NO se puede esperar que el solicitante oculte su orientación/identidad para evitar persecución. Si tendría que esconderse para sobrevivir, eso REFUERZA el caso, no lo debilita.
+- CAT: en países con abuso bajo custodia policial a personas LGBTQ+, considerar protección bajo la Convención Contra la Tortura como vía subsidiaria.
+- EVITAR ESTEREOTIPOS: redactar con dignidad, en la voz del cliente, sin lenguaje sensacionalista. Los hechos de violencia se narran con precisión factual (fecha, lugar, agresor, palabras textuales, daño), no de forma gráfica gratuita.
+
 CIERRE OBLIGATORIO:
 "Por todo lo que he contado con la verdad y el dolor de mi corazón, suplico humildemente que se me conceda asilo."
 
@@ -2935,7 +2981,7 @@ Continúa ahora:`;
     const declarationText = declarationOnly + '\n\n' + '─'.repeat(60) + sigBlock;
 
     // NO fetch articles during initial generation - only after improvement to Final
-    const groundEN = { political:'political persecution opinion', religion:'religious persecution', race:'racial ethnic persecution', social:'particular social group persecution', nationality:'nationality persecution' }[groundType] || 'persecution';
+    const groundEN = { political:'political persecution opinion', religion:'religious persecution', race:'racial ethnic persecution', social:'particular social group persecution', lgbtq:'LGBTQ sexual orientation gender identity persecution', nationality:'nationality persecution' }[groundType] || 'persecution';
     const [dateFrom, dateTo] = getDateRange();
     const currentYear = new Date().getFullYear();
 
