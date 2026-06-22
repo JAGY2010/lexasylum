@@ -146,13 +146,15 @@ async function initDB() {
         updated_at TIMESTAMPTZ DEFAULT NOW(),
         deleted_at TIMESTAMPTZ DEFAULT NULL,
         deleted_by_user_id INTEGER REFERENCES users(id) DEFAULT NULL,
-        deleted_by_email TEXT DEFAULT NULL
+        deleted_by_email TEXT DEFAULT NULL,
+        is_example BOOLEAN DEFAULT false
       );
 
       -- Migration: add soft-delete columns if they don't exist (for existing databases)
       ALTER TABLE cases ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
       ALTER TABLE cases ADD COLUMN IF NOT EXISTS deleted_by_user_id INTEGER REFERENCES users(id) DEFAULT NULL;
       ALTER TABLE cases ADD COLUMN IF NOT EXISTS deleted_by_email TEXT DEFAULT NULL;
+      ALTER TABLE cases ADD COLUMN IF NOT EXISTS is_example BOOLEAN DEFAULT false;
 
       CREATE TABLE IF NOT EXISTS firm_billing (
         id SERIAL PRIMARY KEY,
@@ -338,17 +340,19 @@ app.get('/api/cases', requireAuth, async (req, res) => {
       query = `SELECT c.*, u.name as user_name, f.name as firm_name
                FROM cases c JOIN users u ON c.user_id = u.id JOIN firms f ON c.firm_id = f.id
                WHERE 1=1 ${deletedFilter}
-               ORDER BY c.updated_at DESC`;
+               ORDER BY c.is_example DESC, c.updated_at DESC`;
       params = [];
     } else if (req.session.role === 'firm_admin') {
       query = `SELECT c.*, u.name as user_name, f.name as firm_name
                FROM cases c JOIN users u ON c.user_id = u.id JOIN firms f ON c.firm_id = f.id
-               WHERE c.firm_id = $1 AND c.deleted_at IS NULL ORDER BY c.updated_at DESC`;
+               WHERE (c.firm_id = $1 OR c.is_example = true) AND c.deleted_at IS NULL
+               ORDER BY c.is_example DESC, c.updated_at DESC`;
       params = [req.session.firmId];
     } else {
       query = `SELECT c.*, u.name as user_name, f.name as firm_name
                FROM cases c JOIN users u ON c.user_id = u.id JOIN firms f ON c.firm_id = f.id
-               WHERE c.user_id = $1 AND c.deleted_at IS NULL ORDER BY c.updated_at DESC`;
+               WHERE (c.user_id = $1 OR c.is_example = true) AND c.deleted_at IS NULL
+               ORDER BY c.is_example DESC, c.updated_at DESC`;
       params = [req.session.userId];
     }
     const result = await pool.query(query, params);
@@ -381,6 +385,12 @@ app.post('/api/cases', requireAuth, async (req, res) => {
   if (!id || !name) return res.status(400).json({ error: 'id y name requeridos' });
 
   try {
+    // Protect example cases: only superadmin can modify a case flagged as is_example
+    const existing = await pool.query('SELECT user_id, is_example FROM cases WHERE id = $1', [id]);
+    if (existing.rows.length > 0 && existing.rows[0].is_example && req.session.role !== 'superadmin') {
+      return res.status(403).json({ error: 'Este es un caso de ejemplo de solo lectura y no puede modificarse.' });
+    }
+
     await pool.query(
       `INSERT INTO cases (id, user_id, firm_id, name, country, ground_type, data, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
@@ -403,10 +413,16 @@ app.post('/api/cases', requireAuth, async (req, res) => {
 // Superadmin can pass ?permanent=true to permanently delete from database
 app.delete('/api/cases/:id', requireAuth, async (req, res) => {
   try {
-    const check = await pool.query('SELECT user_id, firm_id, deleted_at FROM cases WHERE id = $1', [req.params.id]);
+    const check = await pool.query('SELECT user_id, firm_id, deleted_at, is_example FROM cases WHERE id = $1', [req.params.id]);
     if (check.rows.length === 0) return res.status(404).json({ error: 'Caso no encontrado' });
 
     const c = check.rows[0];
+
+    // Protect example cases: nobody can delete them except superadmin doing a permanent delete on purpose
+    if (c.is_example && !(req.session.role === 'superadmin' && req.query.permanent === 'true')) {
+      return res.status(403).json({ error: 'Este es un caso de ejemplo de solo lectura y no puede eliminarse.' });
+    }
+
     const canDelete = req.session.role === 'superadmin' ||
       (req.session.role === 'firm_admin' && c.firm_id === req.session.firmId) ||
       c.user_id === req.session.userId;
@@ -427,6 +443,21 @@ app.delete('/api/cases/:id', requireAuth, async (req, res) => {
       );
       res.json({ ok: true, soft: true });
     }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Mark/unmark a case as a read-only example (superadmin only)
+app.post('/api/admin/cases/:id/example', requireSuperAdmin, async (req, res) => {
+  try {
+    const isExample = req.body.isExample === true;
+    const result = await pool.query(
+      `UPDATE cases SET is_example = $1, updated_at = NOW() WHERE id = $2 RETURNING id, name, is_example`,
+      [isExample, req.params.id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Caso no encontrado' });
+    res.json({ ok: true, case: result.rows[0] });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
