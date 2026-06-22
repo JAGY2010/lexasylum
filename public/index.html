@@ -344,6 +344,7 @@ async function loadCasesFromServer() {
       savedAt: c.updated_at,
       _userName: c.user_name,
       _firmName: c.firm_name,
+      _isExample: c.is_example === true,
     }));
     saveCasesToStorage(appCases);
     updateCaseCountBadge();
@@ -3523,6 +3524,11 @@ function autoSave() {
 }
 
 function saveCurrentCase(silent = false) {
+  // Example cases are read-only — never persist edits to them
+  if (_currentIsExample) {
+    if (!silent) showAlert('🔒 Este es un caso de ejemplo de solo lectura. No se puede guardar.', 'info');
+    return;
+  }
   const name = document.getElementById('caseName').value.trim() || 'Sin nombre';
   const caseData = {
     id: currentCaseId || Date.now(),
@@ -3561,6 +3567,7 @@ function saveCurrentCase(silent = false) {
 
 function loadCaseData(c) {
   currentCaseId = c.id;
+  _currentIsExample = c._isExample === true;
   document.getElementById('caseName').value = c.name || '';
   document.getElementById('country').value = c.country || 'cuba';
   document.getElementById('customCountry').value = c.customCountry || '';
@@ -3589,12 +3596,45 @@ function loadCaseData(c) {
   // Restore I-589 official answers
   _i589Answers = c.i589Answers || null;
   closeCases();
+  applyExampleReadOnlyMode(_currentIsExample);
   switchTab('questionnaire');
   updateGenerateButton();
 }
 
+// ─── EXAMPLE READ-ONLY MODE ────────────────────────────────────────────────────
+let _currentIsExample = false;
+
+function applyExampleReadOnlyMode(isExample) {
+  const slot = document.getElementById('missingBannerSlot');
+  // Remove any prior example banner
+  const prior = document.getElementById('exampleBanner');
+  if (prior) prior.remove();
+
+  if (isExample) {
+    // Show a read-only banner at the top
+    if (slot) {
+      const banner = document.createElement('div');
+      banner.id = 'exampleBanner';
+      banner.style.cssText = 'background:linear-gradient(135deg,var(--gold),var(--gold-light));color:var(--navy);padding:10px 20px;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600';
+      banner.innerHTML = '🔒 <span>Este es un <strong>caso de ejemplo de solo lectura</strong>. Puede revisar la declaración, los artículos y las respuestas I-589, pero no se puede editar, regenerar ni eliminar.</span>';
+      slot.appendChild(banner);
+    }
+    // Disable inputs and action buttons
+    document.querySelectorAll('#caseName, #country, #groundType, #customCountry').forEach(el => { el.disabled = true; });
+    const genBtn = document.getElementById('btnGenerate');
+    if (genBtn) { genBtn.disabled = true; genBtn.style.opacity = '0.5'; genBtn.style.cursor = 'not-allowed'; }
+  } else {
+    // Re-enable everything for normal cases
+    document.querySelectorAll('#caseName, #country, #groundType, #customCountry').forEach(el => { el.disabled = false; });
+    const genBtn = document.getElementById('btnGenerate');
+    if (genBtn) { genBtn.disabled = false; genBtn.style.opacity = ''; genBtn.style.cursor = ''; }
+  }
+}
+
 function newCase() {
   currentCaseId = null;
+  _currentIsExample = false;
+  if (typeof applyExampleReadOnlyMode === 'function') applyExampleReadOnlyMode(false);
   answers = {}; transcript = ''; generatedData = null;
   _analysisCache = null; _analysisCachedHTML = '';
   // Clear review and final state for new case
@@ -3653,17 +3693,42 @@ function openCases() {
   const panel = document.getElementById('casesOverlay');
   panel.classList.add('open');
   const cases = getCases();
+  const isSuper = _currentUser && _currentUser.role === 'superadmin';
   const list = document.getElementById('casesList');
   list.innerHTML = cases.length === 0
     ? '<div style="font-size:13px;color:var(--muted);text-align:center;padding:20px">No hay casos guardados</div>'
     : cases.map((c,i) => `
-      <div class="case-item">
-        <div onclick="loadCaseData(getCases()[${i}])">
-          <div class="case-name">${escHtml(c.name||'Sin nombre')}</div>
-          <div class="case-meta">${c.caseType==='reviewed'?'📋 Caso revisado':escHtml(c.country||'')} · ${new Date(c.savedAt).toLocaleDateString('es')}</div>
+      <div class="case-item"${c._isExample ? ' style="background:rgba(200,169,110,0.07);border-left:3px solid var(--gold)"' : ''}>
+        <div onclick="loadCaseData(getCases()[${i}])" style="flex:1">
+          <div class="case-name">${escHtml(c.name||'Sin nombre')}${c._isExample ? ' <span style="display:inline-block;background:var(--gold);color:var(--navy);font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;letter-spacing:0.5px;vertical-align:middle;margin-left:6px">EJEMPLO</span>' : ''}</div>
+          <div class="case-meta">${c._isExample ? '🔒 Solo lectura · ' : ''}${c.caseType==='reviewed'?'📋 Caso revisado':escHtml(c.country||'')} · ${new Date(c.savedAt).toLocaleDateString('es')}</div>
         </div>
-        <button class="case-del" onclick="deleteCase(${i})">🗑</button>
+        ${isSuper ? `<button class="case-del" title="${c._isExample ? 'Quitar de ejemplos' : 'Marcar como ejemplo'}" onclick="event.stopPropagation(); toggleExample('${c.id}', ${c._isExample ? 'false' : 'true'})" style="color:${c._isExample ? 'var(--gold)' : 'var(--muted)'};font-size:16px">${c._isExample ? '★' : '☆'}</button>` : ''}
+        ${c._isExample ? '' : `<button class="case-del" onclick="deleteCase(${i})">🗑</button>`}
       </div>`).join('');
+}
+
+// Marcar/desmarcar un caso como ejemplo de solo lectura (solo superadmin)
+async function toggleExample(caseId, makeExample) {
+  if (!_currentUser || _currentUser.role !== 'superadmin') return;
+  const verbo = makeExample ? 'marcar como EJEMPLO' : 'quitar de ejemplos';
+  if (!confirm(`¿${makeExample ? 'Marcar' : 'Quitar'} este caso como ejemplo de solo lectura?\n\n${makeExample ? 'Quedará visible para TODOS los usuarios y nadie podrá editarlo ni eliminarlo.' : 'Volverá a ser un caso normal editable.'}`)) return;
+  try {
+    const res = await authFetch(`/api/admin/cases/${caseId}/example`, {
+      method: 'POST',
+      body: JSON.stringify({ isExample: makeExample })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(()=>({}));
+      showAlert('⚠ No se pudo ' + verbo + (err.error ? ': ' + err.error : ''), 'error');
+      return;
+    }
+    await loadCasesFromServer();
+    openCases();
+    showAlert(makeExample ? '★ Caso marcado como ejemplo' : '☆ Caso quitado de ejemplos', 'info');
+  } catch(e) {
+    showAlert('⚠ Error al ' + verbo + ': ' + e.message, 'error');
+  }
 }
 
 function closeCases() { document.getElementById('casesOverlay').classList.remove('open'); }
