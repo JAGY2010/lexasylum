@@ -17,9 +17,7 @@ lexasylum/
 ```
 
 ## Credenciales iniciales:
-- Superadmin: juliangaviria29@gmail.com / Julian1994 (CAMBIAR AL ENTRAR)
-- Hernando Bernal Jr — Marlon Pasaje: marlon@hbernallaw.com / Marlon2025! (CAMBIAR AL ENTRAR)
-
+- Superadmin: 
 ## Deploy paso a paso:
 1. Crear repo en GitHub y subir estos archivos
 2. En Railway: New Project → Deploy from GitHub
