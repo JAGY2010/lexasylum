@@ -1,10 +1,10 @@
 # LexAsylum v2.0 — Deploy en Railway
 
 ## Variables de entorno requeridas en Railway:
-- `ANTHROPIC_API_KEY` — tu clave de Anthropic
-- `DATABASE_URL` — se configura automáticamente al agregar PostgreSQL
-- `SESSION_SECRET` — string aleatorio largo (ej: genera uno en random.org)
-- `NODE_ENV` — production
+- `ANTHROPIC_API_KEY` 
+- `DATABASE_URL` 
+- `SESSION_SECRET` 
+- `NODE_ENV` 
 
 ## Estructura del proyecto:
 ```
