@@ -2,6 +2,10 @@ const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
 const { Pool } = require('pg');
+// ── AWS Bedrock ──────────────────────────────────────────────
+const { BedrockRuntimeClient, InvokeModelCommand } = require('@aws-sdk/client-bedrock-runtime');
+const bedrock = new BedrockRuntimeClient({ region: process.env.AWS_REGION || 'us-east-1' });
+const BEDROCK_MODEL_ID = 'us.anthropic.claude-opus-4-6-v1';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -758,7 +762,28 @@ app.post('/api/billing/close/:firmId', requireSuperAdmin, async (req, res) => {
     res.json({ ok: true, period: result.rows[0] });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
+// ── Función que llama a Claude a través de Bedrock ───────────
+async function llamarBedrock(reqBody) {
+  // Bedrock necesita el cuerpo en un formato específico
+  const bedrockBody = {
+    anthropic_version: 'bedrock-2023-05-31',
+    max_tokens: reqBody.max_tokens || 1500,
+    messages: reqBody.messages
+  };
+  // Si venían instrucciones 'system', las incluimos
+  if (reqBody.system) bedrockBody.system = reqBody.system;
 
+  const command = new InvokeModelCommand({
+    modelId: BEDROCK_MODEL_ID,
+    contentType: 'application/json',
+    accept: 'application/json',
+    body: JSON.stringify(bedrockBody)
+  });
+
+  const response = await bedrock.send(command);
+  const respText = new TextDecoder().decode(response.body);
+  return JSON.parse(respText);
+}
 // Add unique constraint to firm_billing if not exists
 pool.query(`
   DO $$ BEGIN
@@ -770,22 +795,32 @@ pool.query(`
 
 
 app.post('/api/claude', requireAuth, async (req, res) => {
-  if (!ANTHROPIC_API_KEY) return res.status(500).json({ error: { message: 'ANTHROPIC_API_KEY no configurada.' } });
   req.setTimeout(300000);
   res.setTimeout(300000);
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-beta': 'web-search-2025-03-05'
-      },
-      body: JSON.stringify(req.body)
-    });
-    const data = await response.json();
-    res.status(response.status).json(data);
+    // ¿La petición usa búsqueda web? (revisa si trae 'tools')
+    const usaWebSearch = req.body.tools && req.body.tools.length > 0;
+
+    if (usaWebSearch) {
+      // CON búsqueda web → va por Anthropic (mantiene la búsqueda web)
+      if (!ANTHROPIC_API_KEY) return res.status(500).json({ error: { message: 'ANTHROPIC_API_KEY no configurada.' } });
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+          'anthropic-beta': 'web-search-2025-03-05'
+        },
+        body: JSON.stringify(req.body)
+      });
+      const data = await response.json();
+      return res.status(response.status).json(data);
+    } else {
+      // SIN búsqueda web (datos sensibles) → va por Bedrock
+      const data = await llamarBedrock(req.body);
+      return res.status(200).json(data);
+    }
   } catch (err) {
     res.status(500).json({ error: { message: 'Error: ' + err.message } });
   }
